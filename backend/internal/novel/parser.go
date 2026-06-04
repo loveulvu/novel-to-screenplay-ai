@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	chineseChapterHeadingPattern = regexp.MustCompile(`^\s*第\s*([0-9]+|[一二三四五六七八九十百千万零〇两]+)\s*章\s*(.*)$`)
+	chineseChapterHeadingPattern = regexp.MustCompile(`^\s*第\s*([0-9]+|[一二三四五六七八九十百千万零〇两]+)\s*章\s*[:：-]?\s*(.*)$`)
 	englishChapterHeadingPattern = regexp.MustCompile(`(?i)^\s*chapter\s+([0-9]+)(?:\s+|[:：]\s*|$)(.*)$`)
 )
 
