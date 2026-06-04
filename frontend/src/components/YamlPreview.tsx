@@ -1,0 +1,46 @@
+"use client";
+
+type YamlPreviewProps = {
+  yaml: string;
+};
+
+export function YamlPreview({ yaml }: YamlPreviewProps) {
+  async function handleCopy() {
+    if (!yaml) {
+      return;
+    }
+    await navigator.clipboard.writeText(yaml);
+  }
+
+  function handleDownload() {
+    if (!yaml) {
+      return;
+    }
+    const blob = new Blob([yaml], { type: "text/yaml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "screenplay.yaml";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className="panel">
+      <div className="preview-actions">
+        <h2>YAML 结果</h2>
+        <div className="button-row">
+          <button className="secondary-button" onClick={handleCopy} disabled={!yaml}>
+            复制 YAML
+          </button>
+          <button className="secondary-button" onClick={handleDownload} disabled={!yaml}>
+            下载 screenplay.yaml
+          </button>
+        </div>
+      </div>
+      <pre className="yaml-output">
+        {yaml || <span className="placeholder">生成后将在这里展示结构化剧本 YAML。</span>}
+      </pre>
+    </section>
+  );
+}

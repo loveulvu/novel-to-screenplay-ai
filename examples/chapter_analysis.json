@@ -1,0 +1,32 @@
+[
+  {
+    "chapter_number": 1,
+    "chapter_title": "雨夜钥匙",
+    "summary": "林澈收到父亲留下的铜钥匙和半张剧票，线索指向海棠剧院。",
+    "characters": ["林澈", "林澈父亲"],
+    "locations": ["老街雨巷"],
+    "key_events": ["林澈收到神秘信件", "铜钥匙和剧票指向海棠剧院"],
+    "conflicts": ["林澈不确定父亲是否真的死亡"],
+    "scene_candidates": ["雨夜取信", "林澈辨认父亲字迹"]
+  },
+  {
+    "chapter_number": 2,
+    "chapter_title": "旧剧院",
+    "summary": "林澈和许岚进入海棠剧院，发现地下室里的旧时钟和顾衡签名。",
+    "characters": ["林澈", "许岚", "顾衡"],
+    "locations": ["海棠剧院", "地下室"],
+    "key_events": ["二人进入剧院", "发现旧时钟仍在运转", "顾衡的名字首次出现"],
+    "conflicts": ["许岚担心林澈冒险，林澈坚持查明真相"],
+    "scene_candidates": ["剧院入口", "地下室发现时钟"]
+  },
+  {
+    "chapter_number": 3,
+    "chapter_title": "舞台对峙",
+    "summary": "顾衡现身索要钥匙，林澈决定启动时钟寻找父亲失踪真相。",
+    "characters": ["林澈", "许岚", "顾衡"],
+    "locations": ["海棠剧院舞台"],
+    "key_events": ["顾衡要求交出钥匙", "顾衡解释时钟保存记忆", "林澈决定启动时钟"],
+    "conflicts": ["林澈要唤醒记忆，顾衡要封存记忆"],
+    "scene_candidates": ["舞台灯亮", "三人对峙", "林澈启动时钟"]
+  }
+]
