@@ -5,11 +5,14 @@ import (
 	"strings"
 )
 
-var chapterHeadingPattern = regexp.MustCompile(`(?i)^\s*((第\s*([0-9]+|[一二三四五六七八九十百零〇两]+)\s*章)|(chapter\s+([0-9]+)))(?:\s+|[:：-]\s*|$)(.*)$`)
+var (
+	chineseChapterHeadingPattern = regexp.MustCompile(`^\s*第\s*([0-9]+|[一二三四五六七八九十百千万零〇两]+)\s*章\s*(.*)$`)
+	englishChapterHeadingPattern = regexp.MustCompile(`(?i)^\s*chapter\s+([0-9]+)(?:\s+|[:：]\s*|$)(.*)$`)
+)
 
 func ParseChapters(input string) []Chapter {
 	lines := strings.Split(input, "\n")
-	var chapters []Chapter
+	chapters := make([]Chapter, 0)
 	var current *Chapter
 	var body []string
 
@@ -23,33 +26,65 @@ func ParseChapters(input string) []Chapter {
 	}
 
 	for _, line := range lines {
-		matches := chapterHeadingPattern.FindStringSubmatch(line)
-		if matches != nil {
+		title, ok := parseChapterHeading(line)
+		if ok {
 			flush()
-			number := len(chapters) + 1
-			title := strings.TrimSpace(matches[6])
-			if title == "" {
-				title = strings.TrimSpace(matches[1])
-			}
 			current = &Chapter{
-				Number: number,
+				Number: len(chapters) + 1,
 				Title:  title,
 			}
 			continue
 		}
 
 		if current == nil {
-			if strings.TrimSpace(line) == "" {
-				continue
-			}
-			current = &Chapter{
-				Number: 1,
-				Title:  "未命名章节",
-			}
+			continue
 		}
 		body = append(body, line)
 	}
 
 	flush()
 	return chapters
+}
+
+func parseChapterHeading(line string) (string, bool) {
+	if title, ok := parseChineseChapterHeading(line); ok {
+		return title, true
+	}
+	return parseEnglishChapterHeading(line)
+}
+
+func parseChineseChapterHeading(line string) (string, bool) {
+	matches := chineseChapterHeadingPattern.FindStringSubmatch(line)
+	if matches == nil {
+		return "", false
+	}
+
+	title := strings.TrimSpace(matches[2])
+	if looksLikeBodyText(title) {
+		return "", false
+	}
+	if title == "" {
+		title = strings.TrimSpace(matches[0])
+	}
+	return title, true
+}
+
+func parseEnglishChapterHeading(line string) (string, bool) {
+	matches := englishChapterHeadingPattern.FindStringSubmatch(line)
+	if matches == nil {
+		return "", false
+	}
+
+	title := strings.TrimSpace(matches[2])
+	if looksLikeBodyText(title) {
+		return "", false
+	}
+	if title == "" {
+		title = strings.TrimSpace(matches[0])
+	}
+	return title, true
+}
+
+func looksLikeBodyText(title string) bool {
+	return strings.ContainsAny(title, "，。！？；,!?;")
 }
