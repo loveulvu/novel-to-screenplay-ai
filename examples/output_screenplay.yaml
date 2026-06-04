@@ -1,18 +1,27 @@
 title: "雨夜旧剧院"
 source_chapters:
-  - 1
-  - 2
-  - 3
+  - number: 1
+    title: "雨夜钥匙"
+    summary: "林澈收到神秘信件，铜钥匙和剧票指向海棠剧院。"
+  - number: 2
+    title: "旧剧院"
+    summary: "林澈和许岚进入剧院地下室，发现旧时钟仍在运转。"
+  - number: 3
+    title: "舞台对峙"
+    summary: "顾衡现身阻止林澈启动时钟，记忆实验浮出水面。"
 characters:
   - id: "char_lin_che"
     name: "林澈"
     role: "主角"
+    description: "背负父亲失踪阴影的青年，外表克制，内心渴望确认父亲留下的真相。"
   - id: "char_xu_lan"
     name: "许岚"
     role: "盟友"
+    description: "林澈的朋友和调查伙伴，负责把危险拉回现实，也推动林澈说出真实恐惧。"
   - id: "char_gu_heng"
     name: "顾衡"
     role: "阻碍者"
+    description: "旧剧院实验的守门人，试图阻止记忆装置再次启动。"
 scenes:
   - id: "scene_001"
     source_chapter: 1

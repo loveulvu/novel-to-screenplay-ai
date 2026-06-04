@@ -8,11 +8,27 @@ func Validate(input Screenplay) ValidationResult {
 	if input.Title == "" {
 		errors = append(errors, "title is required")
 	}
+	if len(input.SourceChapters) == 0 {
+		errors = append(errors, "source_chapters are required")
+	}
 	if len(input.Characters) == 0 {
 		errors = append(errors, "characters are required")
 	}
 	if len(input.Scenes) == 0 {
 		errors = append(errors, "scenes are required")
+	}
+
+	for i, character := range input.Characters {
+		label := fmt.Sprintf("characters[%d]", i)
+		if character.ID == "" {
+			errors = append(errors, label+".id is required")
+		}
+		if character.Name == "" {
+			errors = append(errors, label+".name is required")
+		}
+		if character.Role == "" {
+			errors = append(errors, label+".role is required")
+		}
 	}
 
 	for i, scene := range input.Scenes {
@@ -28,6 +44,12 @@ func Validate(input Screenplay) ValidationResult {
 		}
 		if scene.Summary == "" {
 			errors = append(errors, label+".summary is required")
+		}
+		if len(scene.Characters) == 0 {
+			errors = append(errors, label+".characters are required")
+		}
+		if len(scene.Dialogues) == 0 {
+			errors = append(errors, label+".dialogues are required")
 		}
 
 		for j, dialogue := range scene.Dialogues {

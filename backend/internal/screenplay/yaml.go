@@ -11,7 +11,9 @@ func ToYAML(input Screenplay) string {
 	writeLine(&b, 0, "title: "+quote(input.Title))
 	writeLine(&b, 0, "source_chapters:")
 	for _, chapter := range input.SourceChapters {
-		writeLine(&b, 2, "- "+strconv.Itoa(chapter))
+		writeLine(&b, 2, "- number: "+strconv.Itoa(chapter.Number))
+		writeLine(&b, 4, "title: "+quote(chapter.Title))
+		writeLine(&b, 4, "summary: "+quote(chapter.Summary))
 	}
 
 	writeLine(&b, 0, "characters:")
@@ -19,6 +21,7 @@ func ToYAML(input Screenplay) string {
 		writeLine(&b, 2, "- id: "+quote(character.ID))
 		writeLine(&b, 4, "name: "+quote(character.Name))
 		writeLine(&b, 4, "role: "+quote(character.Role))
+		writeLine(&b, 4, "description: "+quote(character.Description))
 	}
 
 	writeLine(&b, 0, "scenes:")

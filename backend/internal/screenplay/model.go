@@ -1,9 +1,16 @@
 package screenplay
 
+type SourceChapter struct {
+	Number  int    `json:"number"`
+	Title   string `json:"title"`
+	Summary string `json:"summary"`
+}
+
 type Character struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Role string `json:"role"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Role        string `json:"role"`
+	Description string `json:"description"`
 }
 
 type Dialogue struct {
@@ -24,10 +31,10 @@ type Scene struct {
 }
 
 type Screenplay struct {
-	Title          string      `json:"title"`
-	SourceChapters []int       `json:"source_chapters"`
-	Characters     []Character `json:"characters"`
-	Scenes         []Scene     `json:"scenes"`
+	Title          string          `json:"title"`
+	SourceChapters []SourceChapter `json:"source_chapters"`
+	Characters     []Character     `json:"characters"`
+	Scenes         []Scene         `json:"scenes"`
 }
 
 type ValidationResult struct {

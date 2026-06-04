@@ -20,32 +20,69 @@ func (m MockClient) AnalyzeChapter(ctx context.Context, chapter novel.Chapter) (
 	_ = ctx
 
 	summaryByChapter := map[int]string{
-		1: "林澈在雨夜收到失踪父亲留下的铜钥匙，并发现旧剧院的地下室仍在运转。",
-		2: "许岚陪林澈进入旧剧院，二人在尘封舞台上发现父亲研究的时钟装置。",
-		3: "反派顾衡现身索要钥匙，林澈必须决定是否启动时钟装置寻找真相。",
+		1: "林澈在雨夜收到失踪父亲留下的铜钥匙，并发现旧剧院线索，人物目标从被动困惑转向主动追查。",
+		2: "许岚陪林澈进入旧剧院，二人在地下室发现父亲研究的时钟装置，故事从悬疑线索进入核心设定。",
+		3: "顾衡现身索要钥匙，林澈必须决定是否启动时钟装置，主角与阻碍者的冲突正面爆发。",
 	}
 	summary := summaryByChapter[chapter.Number]
 	if summary == "" {
-		summary = fmt.Sprintf("第%d章推进了钥匙、剧院和父亲失踪之谜。", chapter.Number)
+		summary = fmt.Sprintf("第%d章继续推进铜钥匙、旧剧院和父亲失踪之谜。", chapter.Number)
 	}
 
 	return analysis.ChapterAnalysis{
 		ChapterNumber: chapter.Number,
 		ChapterTitle:  chapter.Title,
 		Summary:       summary,
-		Characters:    []string{"林澈", "许岚", "顾衡"},
-		Locations:     []string{"旧剧院", "雨巷", "地下室"},
+		Characters: []analysis.CharacterMention{
+			{
+				Name:          "林澈",
+				RoleInChapter: "追查父亲失踪的主角",
+				Traits:        []string{"敏感", "执着", "压抑"},
+				StateChange:   "从犹豫接受线索，转为主动靠近旧剧院真相。",
+			},
+			{
+				Name:          "许岚",
+				RoleInChapter: "协助林澈调查的盟友",
+				Traits:        []string{"谨慎", "理性", "保护欲强"},
+				StateChange:   "从担心林澈冒险，转为共同承担调查风险。",
+			},
+			{
+				Name:          "顾衡",
+				RoleInChapter: "隐藏实验秘密的阻碍者",
+				Traits:        []string{"强势", "克制", "掌控欲强"},
+				StateChange:   "从幕后威胁转为正面阻止林澈。",
+			},
+		},
+		Locations: []string{"雨巷", "旧剧院", "地下室", "舞台"},
 		KeyEvents: []string{
-			fmt.Sprintf("第%d章揭示新的线索。", chapter.Number),
-			"铜钥匙与旧剧院产生关联。",
+			fmt.Sprintf("第%d章揭示新的关键线索。", chapter.Number),
+			"铜钥匙、剧票和旧时钟被串联为同一条悬疑线。",
 		},
 		Conflicts: []string{
-			"林澈想查清父亲失踪真相，顾衡试图阻止他。",
+			"林澈想查清父亲失踪真相，顾衡试图封存旧剧院的记忆实验。",
 		},
-		SceneCandidates: []string{
-			"雨夜收到钥匙",
-			"旧剧院探索",
-			"时钟装置对峙",
+		SceneCandidates: []analysis.SceneCandidate{
+			{
+				Location:   "雨巷",
+				Time:       "夜晚",
+				Purpose:    "建立悬疑开端和主角追查动机。",
+				Characters: []string{"林澈"},
+				KeyEvents:  []string{"林澈收到铜钥匙", "剧票指向旧剧院"},
+			},
+			{
+				Location:   "旧剧院地下室",
+				Time:       "深夜",
+				Purpose:    "揭示故事核心装置，并让人物关系进入共同冒险。",
+				Characters: []string{"林澈", "许岚"},
+				KeyEvents:  []string{"二人发现时钟装置", "父亲研究痕迹出现"},
+			},
+			{
+				Location:   "旧剧院舞台",
+				Time:       "黎明前",
+				Purpose:    "让主角与阻碍者正面对峙，推动第一幕高潮。",
+				Characters: []string{"林澈", "许岚", "顾衡"},
+				KeyEvents:  []string{"顾衡索要钥匙", "林澈决定启动时钟"},
+			},
 		},
 	}, nil
 }
@@ -86,17 +123,36 @@ func (m MockClient) MergeStoryBible(ctx context.Context, analyses []analysis.Cha
 func (m MockClient) GenerateScreenplay(ctx context.Context, bible story.StoryBible) (screenplay.Screenplay, error) {
 	_ = ctx
 
-	sourceChapters := make([]int, 0, len(bible.Timeline))
+	chapterTitles := map[int]string{
+		1: "雨夜钥匙",
+		2: "旧剧院",
+		3: "舞台对峙",
+	}
+	sourceChapters := make([]screenplay.SourceChapter, 0, len(bible.Timeline))
 	for _, item := range bible.Timeline {
-		sourceChapters = append(sourceChapters, item.ChapterNumber)
+		title := chapterTitles[item.ChapterNumber]
+		if title == "" {
+			title = fmt.Sprintf("第%d章", item.ChapterNumber)
+		}
+		sourceChapters = append(sourceChapters, screenplay.SourceChapter{
+			Number:  item.ChapterNumber,
+			Title:   title,
+			Summary: item.Event,
+		})
 	}
 
+	characterDescriptions := map[string]string{
+		"char_lin_che": "背负父亲失踪阴影的青年，外表克制，内心渴望确认父亲留下的真相。",
+		"char_xu_lan":  "林澈的朋友和调查伙伴，负责把危险拉回现实，也推动林澈说出真实恐惧。",
+		"char_gu_heng": "旧剧院实验的守门人，试图阻止记忆装置再次启动。",
+	}
 	characters := make([]screenplay.Character, 0, len(bible.GlobalCharacters))
 	for _, character := range bible.GlobalCharacters {
 		characters = append(characters, screenplay.Character{
-			ID:   character.ID,
-			Name: character.Name,
-			Role: character.Role,
+			ID:          character.ID,
+			Name:        character.Name,
+			Role:        character.Role,
+			Description: characterDescriptions[character.ID],
 		})
 	}
 
