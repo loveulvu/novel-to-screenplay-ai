@@ -139,11 +139,30 @@ scene_plan 每一项必须包含：
 %s`, faithfulAdaptationPrinciples, string(payload))
 }
 
-func BuildScreenplayPrompt(bible story.StoryBible) string {
-	payload, _ := json.MarshalIndent(bible, "", "  ")
-	return fmt.Sprintf(`请根据 StoryBible 生成 screenplay.Screenplay JSON。
+type screenplayPromptPayload struct {
+	StoryBible      story.StoryBible       `json:"story_bible"`
+	ChapterAnalyses []screenplayFactAnchor `json:"chapter_analyses"`
+}
+
+type screenplayFactAnchor struct {
+	ChapterNumber   int                       `json:"chapter_number"`
+	ChapterTitle    string                    `json:"chapter_title"`
+	Summary         string                    `json:"summary"`
+	KeyEvents       []string                  `json:"key_events"`
+	Conflicts       []string                  `json:"conflicts"`
+	SceneCandidates []analysis.SceneCandidate `json:"scene_candidates"`
+}
+
+func BuildScreenplayPrompt(bible story.StoryBible, analyses []analysis.ChapterAnalysis) string {
+	payload, _ := json.MarshalIndent(screenplayPromptPayload{
+		StoryBible:      bible,
+		ChapterAnalyses: buildScreenplayFactAnchors(analyses),
+	}, "", "  ")
+	return fmt.Sprintf(`请根据 StoryBible 和 ChapterAnalyses 生成 screenplay.Screenplay JSON。
 
 这是忠实于原文事实的剧本化改编初稿，不是完全二创。
+
+ChapterAnalyses 是最终剧本生成的事实锚点。生成 scenes、dialogues 和 actions 时，必须优先遵守每章的 summary、key_events、conflicts、scene_candidates。
 
 忠实改编原则：
 %s
@@ -197,8 +216,56 @@ dialogues 每一项必须包含：
 - 如果原文只是心理活动，actions 可以写为“沉默、观察、停顿、转身”等低风险表演动作，不要编造新动作
 - 不要新增原文没有出现的人物
 
-StoryBible JSON：
+关键事实保留规则：
+- 以下内容必须来自 StoryBible 或 ChapterAnalyses，不得改写：人物姓名、人物关系、地点、事件结果、资质等级、步数、数量、章节归属、明确出现过的专有名词
+- “二十七步”不能改成“不足十步”
+- “三十六步”不能改成“三十步”
+- “四十三步”不能改成“四十步”
+- “丙等资质”不能改成“丁等资质”
+- “甲等资质”不能改成“乙等资质”
+- “希望蛊数量偏少”不能改成“只出现一只希望蛊”
+
+章节归属规则：
+- 每个 scene.source_chapter 必须和 ChapterAnalyses 中的事实来源一致
+- 不要把后续章节的宣布结果、评价或反应提前塞进前一章 scene
+- 第 2 章如果包含“方源走到二十七步、希望蛊聚集、体内开窍成功、外界认为希望蛊数量偏少”，就只能把这些写入第 2 章相关 scene
+- 第 3 章如果包含“方源测试结果引发失望、方正测试甲等资质、家老争夺培养权”，这些宣布结果和争夺反应不要提前写进第 2 章 scene
+
+改编台词规则：
+- 可以生成剧本化改编台词
+- 如果是原文经典短句，可以短句保留，例如“未来的路，会很精彩呢。”
+- 如果不是原文原句，台词必须只表达原文已经存在的情绪、关系或冲突
+- 改编台词不得加入新事实，不要伪造原文没有说过的关键结论
+- “别怕，只管走。”这类台词只能作为情绪性改编，不能承载新事实
+- 禁止写“我已经服下作弊丹”这类原文没有的具体事实
+
+actions 规则：
+- 每条 action 必须是完整可拍摄动作句
+- 不要拆成过短碎片
+- 不要单独写“若有所思”“目光微凝”这类碎片，除非和完整动作合并
+- 每条 action 建议 15 到 40 个中文字符
+- actions 应优先来自原文叙述或对心理活动的低风险外化
+- 心理活动可以外化为“停步、沉默、观察、转身、低头”等动作，但不要编造新行为
+- 坏例子：["方源站在测试队列中", "若有所思"]
+- 好例子：["方源站在测试队列中，平静地注视古月赤城走入花海。", "听到乙等资质的宣布后，方源没有出声，只是收回目光。"]
+
+StoryBible 和 ChapterAnalyses JSON：
 %s`, faithfulAdaptationPrinciples, string(payload))
+}
+
+func buildScreenplayFactAnchors(analyses []analysis.ChapterAnalysis) []screenplayFactAnchor {
+	anchors := make([]screenplayFactAnchor, 0, len(analyses))
+	for _, item := range analyses {
+		anchors = append(anchors, screenplayFactAnchor{
+			ChapterNumber:   item.ChapterNumber,
+			ChapterTitle:    item.ChapterTitle,
+			Summary:         item.Summary,
+			KeyEvents:       item.KeyEvents,
+			Conflicts:       item.Conflicts,
+			SceneCandidates: item.SceneCandidates,
+		})
+	}
+	return anchors
 }
 
 func BuildRepairJSONPrompt(originalPrompt string, rawOutput string, parseError error, schema string) string {
@@ -212,6 +279,9 @@ func BuildRepairJSONPrompt(originalPrompt string, rawOutput string, parseError e
 - 字段名必须符合 json tag
 - 不要省略必填字段
 - 数组字段必须输出 JSON 数组，不能输出字符串
+- 修复时不得改变原始任务中的事实
+- 如果是修复 screenplay JSON，缺失字段必须从原始任务里的 StoryBible 和 ChapterAnalyses 事实锚点补充
+- 不得为了通过解析而新增原文没有的道具、数量、事件或人物
 
 目标字段要求：
 %s
@@ -244,6 +314,14 @@ func BuildRepairScreenplayPrompt(originalPrompt string, current screenplay.Scree
 - 每个 scene.characters 必须非空
 - 每个 scene.dialogues 必须非空
 - 每条 dialogue.character 和 dialogue.line 必须非空
+- 修复时不能为了通过 validator 而编造字段内容
+- 缺字段应从原始任务里的 StoryBible 和 ChapterAnalyses 事实锚点补充
+- 不得引入新的道具、数量、事件、人物关系、地点或章节归属
+- 关键数字、资质等级、人物关系、地点和事件结果必须保持原样
+- actions 仍必须是完整可拍摄动作句，不要拆成短碎片
+
+忠实改编原则：
+%s
 
 校验错误：
 %s
@@ -252,7 +330,7 @@ func BuildRepairScreenplayPrompt(originalPrompt string, current screenplay.Scree
 %s
 
 当前 screenplay JSON：
-%s`, strings.Join(validationErrors, "\n"), truncateText(originalPrompt, repairPromptLimit), truncateText(string(payload), repairPromptLimit))
+%s`, faithfulAdaptationPrinciples, strings.Join(validationErrors, "\n"), truncateText(originalPrompt, repairPromptLimit), truncateText(string(payload), repairPromptLimit))
 }
 
 func chapterAnalysisSchemaDescription() string {

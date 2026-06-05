@@ -120,7 +120,7 @@ func (m MockClient) MergeStoryBible(ctx context.Context, analyses []analysis.Cha
 	}, nil
 }
 
-func (m MockClient) GenerateScreenplay(ctx context.Context, bible story.StoryBible) (screenplay.Screenplay, error) {
+func (m MockClient) GenerateScreenplay(ctx context.Context, bible story.StoryBible, analyses []analysis.ChapterAnalysis) (screenplay.Screenplay, error) {
 	_ = ctx
 
 	chapterTitles := map[int]string{
@@ -128,8 +128,21 @@ func (m MockClient) GenerateScreenplay(ctx context.Context, bible story.StoryBib
 		2: "旧剧院",
 		3: "舞台对峙",
 	}
-	sourceChapters := make([]screenplay.SourceChapter, 0, len(bible.Timeline))
+	sourceChapters := make([]screenplay.SourceChapter, 0, len(analyses))
+	for _, item := range analyses {
+		sourceChapters = append(sourceChapters, screenplay.SourceChapter{
+			Number:  item.ChapterNumber,
+			Title:   item.ChapterTitle,
+			Summary: item.Summary,
+		})
+	}
+	if len(sourceChapters) == 0 {
+		sourceChapters = make([]screenplay.SourceChapter, 0, len(bible.Timeline))
+	}
 	for _, item := range bible.Timeline {
+		if len(analyses) > 0 {
+			break
+		}
 		title := chapterTitles[item.ChapterNumber]
 		if title == "" {
 			title = fmt.Sprintf("第%d章", item.ChapterNumber)

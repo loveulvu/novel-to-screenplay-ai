@@ -52,9 +52,9 @@ func (c *RealClient) MergeStoryBible(ctx context.Context, analyses []analysis.Ch
 	return result, nil
 }
 
-func (c *RealClient) GenerateScreenplay(ctx context.Context, bible story.StoryBible) (screenplay.Screenplay, error) {
+func (c *RealClient) GenerateScreenplay(ctx context.Context, bible story.StoryBible, analyses []analysis.ChapterAnalysis) (screenplay.Screenplay, error) {
 	var result screenplay.Screenplay
-	prompt := BuildScreenplayPrompt(bible)
+	prompt := BuildScreenplayPrompt(bible, analyses)
 	if err := c.callJSON(ctx, "generate screenplay", prompt, screenplaySchemaDescription(), &result); err != nil {
 		return result, err
 	}

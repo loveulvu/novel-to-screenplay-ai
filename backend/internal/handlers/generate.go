@@ -77,7 +77,7 @@ func Generate(c *gin.Context) {
 		return
 	}
 
-	screenplayJSON, err := generator.Generate(ctx, storyBible)
+	screenplayJSON, err := generator.Generate(ctx, storyBible, chapterAnalyses)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),

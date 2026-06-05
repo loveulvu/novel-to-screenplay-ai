@@ -22,5 +22,5 @@ const ProviderReal = "real"
 type Client interface {
 	AnalyzeChapter(ctx context.Context, chapter novel.Chapter) (analysis.ChapterAnalysis, error)
 	MergeStoryBible(ctx context.Context, analyses []analysis.ChapterAnalysis) (story.StoryBible, error)
-	GenerateScreenplay(ctx context.Context, bible story.StoryBible) (screenplay.Screenplay, error)
+	GenerateScreenplay(ctx context.Context, bible story.StoryBible, analyses []analysis.ChapterAnalysis) (screenplay.Screenplay, error)
 }
