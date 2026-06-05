@@ -1,5 +1,20 @@
 # novel-to-screenplay-ai
 
+## AI Provider 配置
+
+后端默认使用 mock 模式；当 `AI_PROVIDER` 为空或为 `mock` 时，`/api/generate` 会使用内置 `MockClient`。
+
+如需使用真实 OpenAI-compatible Chat Completions API，请在本地 `.env` 中配置：
+
+```bash
+AI_PROVIDER=real
+AI_API_KEY=your_api_key_here
+AI_BASE_URL=https://your-provider-compatible-api/v1
+AI_MODEL=your-model-name
+```
+
+不要提交 `.env`，只提交 `.env.example`。真实模式下，`/api/generate` 会依次调用真实模型完成章节分析、Story Bible 合并和剧本 JSON 生成，再经过后端校验并导出 YAML。
+
 AI 小说转剧本工具 MVP，用于参加七牛云 × XEngineer 暑期实训营第三批次议题三。项目目标是把用户粘贴的至少 3 个章节小说文本，转换为结构化剧本 YAML。
 
 ## 题目对应关系

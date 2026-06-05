@@ -42,10 +42,16 @@ func Generate(c *gin.Context) {
 		})
 		return
 	}
-	mockClient := ai.NewMockClient()
-	analyzer := analysis.NewAnalyzer(mockClient)
-	merger := story.NewMerger(mockClient)
-	generator := screenplay.NewGenerator(mockClient)
+	client, err := ai.NewClientFromEnv()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	analyzer := analysis.NewAnalyzer(client)
+	merger := story.NewMerger(client)
+	generator := screenplay.NewGenerator(client)
 
 	ctx := c.Request.Context()
 	chapterAnalyses, err := analyzer.AnalyzeChapters(ctx, chapters)

@@ -73,6 +73,10 @@ func Validate(input Screenplay) ValidationResult {
 		}
 	}
 
+	if errors == nil {
+		errors = []string{}
+	}
+
 	return ValidationResult{
 		Passed: len(errors) == 0,
 		Errors: errors,
