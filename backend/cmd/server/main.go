@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"novel-to-screenplay-ai/internal/ai"
 	"novel-to-screenplay-ai/internal/handlers"
 	"os"
 
@@ -10,6 +11,9 @@ import (
 )
 
 func main() {
+	ai.LoadEnv()
+	aiStatus := ai.RuntimeStatusFromEnv()
+
 	r := gin.Default()
 	r.Use(withCORS())
 	r.GET("/api/health", handlers.Health)
@@ -20,6 +24,10 @@ func main() {
 		addr = ":" + port
 	}
 
+	log.Printf("AI provider: %s", aiStatus.AIProvider)
+	log.Printf("AI model: %s", aiStatus.AIModel)
+	log.Printf("AI base URL configured: %t", aiStatus.AIBaseURLConfigured)
+	log.Printf("AI API key configured: %t", aiStatus.AIAPIKeyConfigured)
 	log.Printf("novel-to-screenplay-ai backend listening on %s", addr)
 	if err := r.Run(addr); err != nil {
 		log.Fatal(err)

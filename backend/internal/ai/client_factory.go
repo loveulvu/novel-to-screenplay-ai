@@ -4,15 +4,33 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 )
 
-func NewClientFromEnv() (Client, error) {
-	loadDotEnvIfPresent("../.env")
-	loadDotEnvIfPresent(".env")
+var loadEnvOnce sync.Once
 
-	provider := strings.ToLower(strings.TrimSpace(os.Getenv("AI_PROVIDER")))
-	if provider == "" || provider == ProviderMock {
+type RuntimeStatus struct {
+	AIProvider          string `json:"ai_provider"`
+	AIModel             string `json:"ai_model"`
+	AIBaseURLConfigured bool   `json:"ai_base_url_configured"`
+	AIAPIKeyConfigured  bool   `json:"ai_api_key_configured"`
+}
+
+func LoadEnv() {
+	loadEnvOnce.Do(func() {
+		for _, path := range dotenvCandidates() {
+			loadDotEnvIfPresent(path)
+		}
+	})
+}
+
+func NewClientFromEnv() (Client, error) {
+	LoadEnv()
+
+	provider := normalizedProvider(os.Getenv("AI_PROVIDER"))
+	if provider == ProviderMock {
 		return NewMockClient(), nil
 	}
 
@@ -42,6 +60,58 @@ func NewClientFromEnv() (Client, error) {
 	}
 
 	return NewRealClient(cfg), nil
+}
+
+func RuntimeStatusFromEnv() RuntimeStatus {
+	LoadEnv()
+
+	return RuntimeStatus{
+		AIProvider:          normalizedProvider(os.Getenv("AI_PROVIDER")),
+		AIModel:             strings.TrimSpace(os.Getenv("AI_MODEL")),
+		AIBaseURLConfigured: strings.TrimSpace(os.Getenv("AI_BASE_URL")) != "",
+		AIAPIKeyConfigured:  strings.TrimSpace(os.Getenv("AI_API_KEY")) != "",
+	}
+}
+
+func normalizedProvider(value string) string {
+	provider := strings.ToLower(strings.TrimSpace(value))
+	if provider == "" {
+		return ProviderMock
+	}
+	return provider
+}
+
+func dotenvCandidates() []string {
+	paths := []string{
+		".env",
+		filepath.Join("..", ".env"),
+		filepath.Join("backend", ".env"),
+	}
+
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		paths = append(paths,
+			filepath.Join(exeDir, ".env"),
+			filepath.Join(exeDir, "..", ".env"),
+			filepath.Join(exeDir, "..", "..", ".env"),
+		)
+	}
+
+	return uniquePaths(paths)
+}
+
+func uniquePaths(paths []string) []string {
+	seen := make(map[string]bool, len(paths))
+	unique := make([]string, 0, len(paths))
+	for _, path := range paths {
+		cleaned := filepath.Clean(path)
+		if seen[cleaned] {
+			continue
+		}
+		seen[cleaned] = true
+		unique = append(unique, cleaned)
+	}
+	return unique
 }
 
 func loadDotEnvIfPresent(path string) {

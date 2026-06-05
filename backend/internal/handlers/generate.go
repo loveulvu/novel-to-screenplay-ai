@@ -23,6 +23,12 @@ type generateResponse struct {
 	ScreenplayJSON   screenplay.Screenplay       `json:"screenplay_json"`
 	ScreenplayYAML   string                      `json:"screenplay_yaml"`
 	ValidationResult screenplay.ValidationResult `json:"validation"`
+	Meta             generateMeta                `json:"meta"`
+}
+
+type generateMeta struct {
+	AIProvider string `json:"ai_provider"`
+	AIModel    string `json:"ai_model"`
 }
 
 func Generate(c *gin.Context) {
@@ -49,6 +55,7 @@ func Generate(c *gin.Context) {
 		})
 		return
 	}
+	runtimeStatus := ai.RuntimeStatusFromEnv()
 	analyzer := analysis.NewAnalyzer(client)
 	merger := story.NewMerger(client)
 	generator := screenplay.NewGenerator(client)
@@ -88,5 +95,9 @@ func Generate(c *gin.Context) {
 		ScreenplayJSON:   screenplayJSON,
 		ScreenplayYAML:   screenplayYAML,
 		ValidationResult: validation,
+		Meta: generateMeta{
+			AIProvider: runtimeStatus.AIProvider,
+			AIModel:    runtimeStatus.AIModel,
+		},
 	})
 }
