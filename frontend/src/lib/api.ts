@@ -96,6 +96,11 @@ export type Validation = {
   errors: string[];
 };
 
+export type GenerateMeta = {
+  ai_provider: "mock" | "real" | string;
+  ai_model: string;
+};
+
 export type GenerateResponse = {
   chapter_count: number;
   chapter_analyses: ChapterAnalysis[];
@@ -103,6 +108,7 @@ export type GenerateResponse = {
   screenplay_json: Screenplay;
   screenplay_yaml: string;
   validation: Validation;
+  meta: GenerateMeta;
 };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";

@@ -10,7 +10,7 @@ export function ResultSections({ result }: ResultSectionsProps) {
     return (
       <section className="panel empty-result">
         <h2>结果区</h2>
-        <p>生成成功后，这里会展示章节分析、Story Bible、YAML 和 Schema 校验结果。</p>
+        <p>生成成功后，这里会展示 AI 模式、章节分析、Story Bible、YAML 和 Schema 校验结果。</p>
       </section>
     );
   }
@@ -25,10 +25,23 @@ export function ResultSections({ result }: ResultSectionsProps) {
 }
 
 function BasicInfo({ result }: { result: GenerateResponse }) {
+  const provider = result.meta?.ai_provider ?? "unknown";
+  const providerText =
+    provider === "real" ? "当前使用真实 LLM 模式" : provider === "mock" ? "当前使用 Mock 模式" : "当前 AI 模式未知";
+
   return (
     <section className="panel">
       <h2>基础信息</h2>
+      <p className={provider === "real" ? "mode-badge real-mode" : "mode-badge mock-mode"}>{providerText}</p>
       <div className="metric-grid">
+        <div>
+          <span>AI provider</span>
+          <strong>{provider}</strong>
+        </div>
+        <div>
+          <span>AI model</span>
+          <strong>{result.meta?.ai_model || "未配置"}</strong>
+        </div>
         <div>
           <span>章节数量</span>
           <strong>{result.chapter_count}</strong>
@@ -139,15 +152,7 @@ function StoryBibleView({ storyBible }: { storyBible: StoryBible }) {
   );
 }
 
-function FieldList({
-  title,
-  items,
-  children
-}: {
-  title: string;
-  items?: string[];
-  children?: ReactNode;
-}) {
+function FieldList({ title, items, children }: { title: string; items?: string[]; children?: ReactNode }) {
   const values = items ?? [];
 
   if (!children && values.length === 0) {

@@ -248,6 +248,26 @@ h4 {
 
 .metric-grid strong {
   font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.mode-badge {
+  display: inline-block;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.real-mode {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.mock-mode {
+  color: #92400e;
+  background: #fef3c7;
 }
 
 .stack {

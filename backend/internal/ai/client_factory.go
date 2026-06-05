@@ -85,7 +85,9 @@ func dotenvCandidates() []string {
 	paths := []string{
 		".env",
 		filepath.Join("..", ".env"),
+		filepath.Join("..", "..", ".env"),
 		filepath.Join("backend", ".env"),
+		filepath.Join("..", "backend", ".env"),
 	}
 
 	if exePath, err := os.Executable(); err == nil {
