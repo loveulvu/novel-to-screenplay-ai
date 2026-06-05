@@ -39,12 +39,8 @@ func (c *RealClient) AnalyzeChapter(ctx context.Context, chapter novel.Chapter) 
 	if err := c.callJSON(ctx, "analyze chapter", BuildChapterAnalysisPrompt(chapter), chapterAnalysisSchemaDescription(), &result); err != nil {
 		return result, err
 	}
-	if result.ChapterNumber == 0 {
-		result.ChapterNumber = chapter.Number
-	}
-	if result.ChapterTitle == "" {
-		result.ChapterTitle = chapter.Title
-	}
+	result.ChapterNumber = chapter.Number
+	result.ChapterTitle = chapter.Title
 	return result, nil
 }
 

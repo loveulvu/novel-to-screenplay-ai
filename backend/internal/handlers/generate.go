@@ -84,6 +84,7 @@ func Generate(c *gin.Context) {
 		})
 		return
 	}
+	applySourceChaptersFromAnalyses(&screenplayJSON, chapterAnalyses)
 
 	validation := screenplay.Validate(screenplayJSON)
 	screenplayYAML := screenplay.ToYAML(screenplayJSON)
@@ -100,4 +101,16 @@ func Generate(c *gin.Context) {
 			AIModel:    runtimeStatus.AIModel,
 		},
 	})
+}
+
+func applySourceChaptersFromAnalyses(target *screenplay.Screenplay, analyses []analysis.ChapterAnalysis) {
+	sourceChapters := make([]screenplay.SourceChapter, 0, len(analyses))
+	for _, chapter := range analyses {
+		sourceChapters = append(sourceChapters, screenplay.SourceChapter{
+			Number:  chapter.ChapterNumber,
+			Title:   chapter.ChapterTitle,
+			Summary: chapter.Summary,
+		})
+	}
+	target.SourceChapters = sourceChapters
 }
