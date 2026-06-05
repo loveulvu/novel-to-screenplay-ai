@@ -15,6 +15,18 @@ AI_MODEL=your-model-name
 
 不要提交 `.env`，只提交 `.env.example`。真实模式下，`/api/generate` 会依次调用真实模型完成章节分析、Story Bible 合并和剧本 JSON 生成，再经过后端校验并导出 YAML。
 
+## 前端演示页
+
+前端演示页现在会展示 `/api/generate` 返回的完整链路结果，包括章节分析、Story Bible、YAML 剧本和 Schema 校验结果。
+
+本地演示流程：
+
+1. 启动后端：`cd backend && go run ./cmd/server`
+2. 启动前端：`cd frontend && npm run dev`
+3. 打开前端页面，点击“填入示例小说”
+4. 点击“生成剧本 YAML”
+5. 查看章节分析、Story Bible、校验结果，并下载 `screenplay.yaml`
+
 AI 小说转剧本工具 MVP，用于参加七牛云 × XEngineer 暑期实训营第三批次议题三。项目目标是把用户粘贴的至少 3 个章节小说文本，转换为结构化剧本 YAML。
 
 ## 题目对应关系
