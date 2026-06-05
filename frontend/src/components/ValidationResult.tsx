@@ -8,7 +8,7 @@ export function ValidationResult({ validation }: ValidationResultProps) {
   if (!validation) {
     return (
       <section className="panel">
-        <h2>校验结果</h2>
+        <h2>Schema 校验结果</h2>
         <p className="validation-waiting">等待生成。</p>
       </section>
     );
@@ -16,9 +16,9 @@ export function ValidationResult({ validation }: ValidationResultProps) {
 
   return (
     <section className="panel">
-      <h2>校验结果</h2>
+      <h2>Schema 校验结果</h2>
       {validation.passed ? (
-        <p className="validation-ok">校验通过。</p>
+        <p className="validation-ok">Schema 校验通过</p>
       ) : (
         <ul className="validation-errors">
           {validation.errors.map((error) => (

@@ -26,9 +26,9 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
   }
 
   return (
-    <section className="panel">
+    <section className="panel yaml-panel">
       <div className="preview-actions">
-        <h2>YAML 结果</h2>
+        <h2>YAML 剧本结果</h2>
         <div className="button-row">
           <button className="secondary-button" onClick={handleCopy} disabled={!yaml}>
             复制 YAML
@@ -39,7 +39,7 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
         </div>
       </div>
       <pre className="yaml-output">
-        {yaml || <span className="placeholder">生成后将在这里展示结构化剧本 YAML。</span>}
+        <code>{yaml || "生成后将在这里展示结构化剧本 YAML。"}</code>
       </pre>
     </section>
   );
