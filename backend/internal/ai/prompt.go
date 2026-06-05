@@ -3,9 +3,11 @@ package ai
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"novel-to-screenplay-ai/internal/analysis"
 	"novel-to-screenplay-ai/internal/novel"
+	"novel-to-screenplay-ai/internal/screenplay"
 	"novel-to-screenplay-ai/internal/story"
 )
 
@@ -163,4 +165,160 @@ dialogues 每一项必须包含：
 
 StoryBible JSON：
 %s`, string(payload))
+}
+
+func BuildRepairJSONPrompt(originalPrompt string, rawOutput string, parseError error, schema string) string {
+	return fmt.Sprintf(`你上一次返回的内容无法解析为目标 Go struct JSON。请基于原始任务、解析错误和目标字段要求，返回修复后的合法 JSON。
+
+要求：
+- 只返回修复后的 JSON
+- 不要 markdown
+- 不要解释
+- 不要输出 YAML
+- 字段名必须符合 json tag
+- 不要省略必填字段
+- 数组字段必须输出 JSON 数组，不能输出字符串
+
+目标字段要求：
+%s
+
+json.Unmarshal 错误：
+%s
+
+原始任务：
+%s
+
+模型第一次返回内容：
+%s`, schema, parseError.Error(), truncateText(originalPrompt, repairPromptLimit), truncateText(rawOutput, repairPromptLimit))
+}
+
+func BuildRepairScreenplayPrompt(originalPrompt string, current screenplay.Screenplay, validationErrors []string) string {
+	payload, _ := json.MarshalIndent(current, "", "  ")
+	return fmt.Sprintf(`你上一次返回的 screenplay.Screenplay JSON 已经可以解析，但没有通过后端 Validate。请基于原始任务、当前 JSON 和校验错误，返回修复后的 screenplay.Screenplay JSON。
+
+要求：
+- 只返回修复后的 JSON
+- 不要 markdown
+- 不要解释
+- 不要输出 YAML
+- 字段名必须符合 json tag
+- 不要省略必填字段
+- 不要删除 validator 需要的字段
+- source_chapters 必须非空，每项 number > 0 且 title 非空
+- characters 必须非空，每项 id、name、role 非空
+- scenes 必须非空，每项 id、location、time、summary 非空
+- 每个 scene.characters 必须非空
+- 每个 scene.dialogues 必须非空
+- 每条 dialogue.character 和 dialogue.line 必须非空
+
+校验错误：
+%s
+
+原始任务：
+%s
+
+当前 screenplay JSON：
+%s`, strings.Join(validationErrors, "\n"), truncateText(originalPrompt, repairPromptLimit), truncateText(string(payload), repairPromptLimit))
+}
+
+func chapterAnalysisSchemaDescription() string {
+	return `analysis.ChapterAnalysis:
+{
+  "chapter_number": number,
+  "chapter_title": string,
+  "summary": string,
+  "characters": [
+    {
+      "name": string,
+      "role_in_chapter": string,
+      "traits": [string],
+      "state_change": string
+    }
+  ],
+  "locations": [string],
+  "key_events": [string],
+  "conflicts": [string],
+  "scene_candidates": [
+    {
+      "location": string,
+      "time": string,
+      "purpose": string,
+      "characters": [string],
+      "key_events": [string]
+    }
+  ]
+}`
+}
+
+func storyBibleSchemaDescription() string {
+	return `story.StoryBible:
+{
+  "title": string,
+  "logline": string,
+  "global_characters": [
+    {
+      "id": string,
+      "name": string,
+      "role": string,
+      "motivation": string
+    }
+  ],
+  "timeline": [
+    {
+      "chapter_number": number,
+      "event": string
+    }
+  ],
+  "main_conflict": string,
+  "scene_plan": [
+    {
+      "id": string,
+      "source_chapter": number,
+      "summary": string,
+      "location": string,
+      "time": string,
+      "characters": [string]
+    }
+  ]
+}`
+}
+
+func screenplaySchemaDescription() string {
+	return `screenplay.Screenplay:
+{
+  "title": string,
+  "source_chapters": [
+    {
+      "number": number,
+      "title": string,
+      "summary": string
+    }
+  ],
+  "characters": [
+    {
+      "id": string,
+      "name": string,
+      "role": string,
+      "description": string
+    }
+  ],
+  "scenes": [
+    {
+      "id": string,
+      "source_chapter": number,
+      "location": string,
+      "time": string,
+      "summary": string,
+      "characters": [string],
+      "dialogues": [
+        {
+          "character": string,
+          "emotion": string,
+          "line": string
+        }
+      ],
+      "actions": [string]
+    }
+  ]
+}`
 }

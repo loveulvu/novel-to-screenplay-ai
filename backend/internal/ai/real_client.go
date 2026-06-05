@@ -36,7 +36,7 @@ func NewRealClient(cfg Config) *RealClient {
 
 func (c *RealClient) AnalyzeChapter(ctx context.Context, chapter novel.Chapter) (analysis.ChapterAnalysis, error) {
 	var result analysis.ChapterAnalysis
-	if err := c.completeJSON(ctx, "analyze chapter", BuildChapterAnalysisPrompt(chapter), &result); err != nil {
+	if err := c.callJSON(ctx, "analyze chapter", BuildChapterAnalysisPrompt(chapter), chapterAnalysisSchemaDescription(), &result); err != nil {
 		return result, err
 	}
 	if result.ChapterNumber == 0 {
@@ -50,7 +50,7 @@ func (c *RealClient) AnalyzeChapter(ctx context.Context, chapter novel.Chapter) 
 
 func (c *RealClient) MergeStoryBible(ctx context.Context, analyses []analysis.ChapterAnalysis) (story.StoryBible, error) {
 	var result story.StoryBible
-	if err := c.completeJSON(ctx, "merge story bible", BuildStoryBiblePrompt(analyses), &result); err != nil {
+	if err := c.callJSON(ctx, "merge story bible", BuildStoryBiblePrompt(analyses), storyBibleSchemaDescription(), &result); err != nil {
 		return result, err
 	}
 	return result, nil
@@ -58,13 +58,70 @@ func (c *RealClient) MergeStoryBible(ctx context.Context, analyses []analysis.Ch
 
 func (c *RealClient) GenerateScreenplay(ctx context.Context, bible story.StoryBible) (screenplay.Screenplay, error) {
 	var result screenplay.Screenplay
-	if err := c.completeJSON(ctx, "generate screenplay", BuildScreenplayPrompt(bible), &result); err != nil {
+	prompt := BuildScreenplayPrompt(bible)
+	if err := c.callJSON(ctx, "generate screenplay", prompt, screenplaySchemaDescription(), &result); err != nil {
 		return result, err
 	}
-	return result, nil
+
+	validation := screenplay.Validate(result)
+	if validation.Passed {
+		return result, nil
+	}
+
+	repairPrompt := BuildRepairScreenplayPrompt(prompt, result, validation.Errors)
+	var repaired screenplay.Screenplay
+	if err := c.callJSONNoRepair(ctx, "generate screenplay validation repair", repairPrompt, &repaired); err != nil {
+		return result, fmt.Errorf("generate screenplay: validation failed and repair parse failed: %w", err)
+	}
+
+	repairedValidation := screenplay.Validate(repaired)
+	if !repairedValidation.Passed {
+		return result, fmt.Errorf("generate screenplay: validation failed after repair: %s", strings.Join(repairedValidation.Errors, "; "))
+	}
+
+	return repaired, nil
 }
 
-func (c *RealClient) completeJSON(ctx context.Context, step string, prompt string, target any) error {
+func (c *RealClient) callJSON(ctx context.Context, step string, prompt string, schema string, target any) error {
+	raw, err := c.callChatContent(ctx, step, prompt)
+	if err != nil {
+		return err
+	}
+
+	jsonText := extractJSON(raw)
+	if err := json.Unmarshal([]byte(jsonText), target); err == nil {
+		return nil
+	} else {
+		repairPrompt := BuildRepairJSONPrompt(prompt, raw, err, schema)
+		repairRaw, repairErr := c.callChatContent(ctx, step+" JSON repair", repairPrompt)
+		if repairErr != nil {
+			return fmt.Errorf("%s: parse failed and repair request failed: %w", step, repairErr)
+		}
+
+		repairJSON := extractJSON(repairRaw)
+		if repairUnmarshalErr := json.Unmarshal([]byte(repairJSON), target); repairUnmarshalErr != nil {
+			return fmt.Errorf("%s: parse failed after repair: %w; output: %s", step, repairUnmarshalErr, summarize(repairJSON, 500))
+		}
+
+		return nil
+	}
+}
+
+func (c *RealClient) callJSONNoRepair(ctx context.Context, step string, prompt string, target any) error {
+	raw, err := c.callChatContent(ctx, step, prompt)
+	if err != nil {
+		return err
+	}
+
+	jsonText := extractJSON(raw)
+	if err := json.Unmarshal([]byte(jsonText), target); err != nil {
+		return fmt.Errorf("%s: parse failed: %w; output: %s", step, err, summarize(jsonText, 500))
+	}
+
+	return nil
+}
+
+func (c *RealClient) callChatContent(ctx context.Context, step string, prompt string) (string, error) {
 	reqBody := chatCompletionRequest{
 		Model: c.model,
 		Messages: []chatMessage{
@@ -76,45 +133,40 @@ func (c *RealClient) completeJSON(ctx context.Context, step string, prompt strin
 
 	payload, err := json.Marshal(reqBody)
 	if err != nil {
-		return fmt.Errorf("%s: marshal request: %w", step, err)
+		return "", fmt.Errorf("%s: marshal request: %w", step, err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return fmt.Errorf("%s: create request: %w", step, err)
+		return "", fmt.Errorf("%s: create request: %w", step, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("%s: call chat completions: %w", step, err)
+		return "", fmt.Errorf("%s: call chat completions: %w", step, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1_000_000))
 	if err != nil {
-		return fmt.Errorf("%s: read response: %w", step, err)
+		return "", fmt.Errorf("%s: read response: %w", step, err)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("%s: chat completions returned status %d: %s", step, resp.StatusCode, summarize(string(body), 500))
+		return "", fmt.Errorf("%s: chat completions returned status %d: %s", step, resp.StatusCode, summarize(string(body), 500))
 	}
 
 	var chatResp chatCompletionResponse
 	if err := json.Unmarshal(body, &chatResp); err != nil {
-		return fmt.Errorf("%s: parse chat completions response: %w; response: %s", step, err, summarize(string(body), 300))
+		return "", fmt.Errorf("%s: parse chat completions response: %w; response: %s", step, err, summarize(string(body), 300))
 	}
 	if len(chatResp.Choices) == 0 || strings.TrimSpace(chatResp.Choices[0].Message.Content) == "" {
-		return fmt.Errorf("%s: chat completions response has no message content", step)
+		return "", fmt.Errorf("%s: chat completions response has no message content", step)
 	}
 
-	jsonText := extractJSON(chatResp.Choices[0].Message.Content)
-	if err := json.Unmarshal([]byte(jsonText), target); err != nil {
-		return fmt.Errorf("%s: unmarshal model JSON: %w; output: %s", step, err, summarize(jsonText, 500))
-	}
-
-	return nil
+	return chatResp.Choices[0].Message.Content, nil
 }
 
 func chatCompletionsEndpoint(baseURL string) string {

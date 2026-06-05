@@ -2,6 +2,8 @@ package ai
 
 import "strings"
 
+const repairPromptLimit = 4000
+
 func extractJSON(raw string) string {
 	text := strings.TrimSpace(raw)
 	if !strings.HasPrefix(text, "```") {
@@ -20,4 +22,12 @@ func extractJSON(raw string) string {
 	}
 
 	return strings.TrimSpace(rest[:end])
+}
+
+func truncateText(value string, limit int) string {
+	text := strings.TrimSpace(value)
+	if limit <= 0 || len(text) <= limit {
+		return text
+	}
+	return text[:limit] + "..."
 }

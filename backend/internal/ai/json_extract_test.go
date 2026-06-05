@@ -29,3 +29,24 @@ func TestExtractJSONTrimsWhitespace(t *testing.T) {
 		t.Fatalf("unexpected JSON: %q", got)
 	}
 }
+
+func TestTruncateTextShortValue(t *testing.T) {
+	got := truncateText("  abc  ", 10)
+	if got != "abc" {
+		t.Fatalf("unexpected truncated value: %q", got)
+	}
+}
+
+func TestTruncateTextLongValue(t *testing.T) {
+	got := truncateText("abcdef", 3)
+	if got != "abc..." {
+		t.Fatalf("unexpected truncated value: %q", got)
+	}
+}
+
+func TestTruncateTextZeroLimit(t *testing.T) {
+	got := truncateText("abcdef", 0)
+	if got != "abcdef" {
+		t.Fatalf("unexpected truncated value: %q", got)
+	}
+}
