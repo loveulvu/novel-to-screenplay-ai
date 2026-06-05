@@ -18,6 +18,16 @@ func Validate(input Screenplay) ValidationResult {
 		errors = append(errors, "scenes are required")
 	}
 
+	for i, chapter := range input.SourceChapters {
+		label := fmt.Sprintf("source_chapters[%d]", i)
+		if chapter.Number <= 0 {
+			errors = append(errors, label+".number must be greater than 0")
+		}
+		if chapter.Title == "" {
+			errors = append(errors, label+".title is required")
+		}
+	}
+
 	for i, character := range input.Characters {
 		label := fmt.Sprintf("characters[%d]", i)
 		if character.ID == "" {
