@@ -66,9 +66,6 @@ func parseChineseChapterHeading(line string) (string, bool) {
 	}
 
 	title := cleanupHeadingTitle(matches[2])
-	if looksLikeBodyText(title) {
-		return "", false
-	}
 	if title == "" {
 		title = cleanupHeadingTitle(matches[0])
 	}
@@ -82,9 +79,6 @@ func parseEnglishChapterHeading(line string) (string, bool) {
 	}
 
 	title := cleanupHeadingTitle(matches[2])
-	if looksLikeBodyText(title) {
-		return "", false
-	}
 	if title == "" {
 		title = cleanupHeadingTitle(matches[0])
 	}
@@ -103,8 +97,4 @@ func cleanupHeadingTitle(title string) string {
 	title = strings.TrimSpace(title)
 	title = strings.Trim(title, "-—:：")
 	return strings.TrimSpace(title)
-}
-
-func looksLikeBodyText(title string) bool {
-	return strings.ContainsAny(title, "，。！？；,!?;")
 }
