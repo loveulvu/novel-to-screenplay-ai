@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -21,22 +24,31 @@ type RealClient struct {
 	model      string
 	endpoint   string
 	httpClient *http.Client
+	timeout    time.Duration
 }
 
 func NewRealClient(cfg Config) *RealClient {
+	timeoutSeconds := cfg.TimeoutSeconds
+	if timeoutSeconds <= 0 {
+		timeoutSeconds = defaultAITimeoutSeconds
+	}
+	timeout := time.Duration(timeoutSeconds) * time.Second
+
 	return &RealClient{
 		apiKey:   cfg.APIKey,
 		model:    cfg.Model,
 		endpoint: chatCompletionsEndpoint(cfg.BaseURL),
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: timeout,
 		},
+		timeout: timeout,
 	}
 }
 
 func (c *RealClient) AnalyzeChapter(ctx context.Context, chapter novel.Chapter) (analysis.ChapterAnalysis, error) {
 	var result analysis.ChapterAnalysis
-	if err := c.callJSON(ctx, "analyze chapter", BuildChapterAnalysisPrompt(chapter), chapterAnalysisSchemaDescription(), &result); err != nil {
+	step := fmt.Sprintf("analyze chapter %d", chapter.Number)
+	if err := c.callJSON(ctx, step, BuildChapterAnalysisPrompt(chapter), chapterAnalysisSchemaDescription(), &result); err != nil {
 		return result, err
 	}
 	result.ChapterNumber = chapter.Number
@@ -64,6 +76,7 @@ func (c *RealClient) GenerateScreenplay(ctx context.Context, bible story.StoryBi
 		return result, nil
 	}
 
+	log.Printf("LLM generate screenplay validation failed; starting one validation repair retry: %s", strings.Join(validation.Errors, "; "))
 	repairPrompt := BuildRepairScreenplayPrompt(prompt, result, validation.Errors)
 	var repaired screenplay.Screenplay
 	if err := c.callJSONNoRepair(ctx, "generate screenplay validation repair", repairPrompt, &repaired); err != nil {
@@ -88,6 +101,7 @@ func (c *RealClient) callJSON(ctx context.Context, step string, prompt string, s
 	if err := json.Unmarshal([]byte(jsonText), target); err == nil {
 		return nil
 	} else {
+		log.Printf("LLM %s parse failed; starting one JSON repair retry: %v", step, err)
 		repairPrompt := BuildRepairJSONPrompt(prompt, raw, err, schema)
 		repairRaw, repairErr := c.callChatContent(ctx, step+" JSON repair", repairPrompt)
 		if repairErr != nil {
@@ -118,6 +132,9 @@ func (c *RealClient) callJSONNoRepair(ctx context.Context, step string, prompt s
 }
 
 func (c *RealClient) callChatContent(ctx context.Context, step string, prompt string) (string, error) {
+	start := time.Now()
+	log.Printf("LLM %s started (model=%s, timeout=%ds)", step, c.model, int(c.timeout.Seconds()))
+
 	reqBody := chatCompletionRequest{
 		Model: c.model,
 		Messages: []chatMessage{
@@ -129,40 +146,68 @@ func (c *RealClient) callChatContent(ctx context.Context, step string, prompt st
 
 	payload, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", fmt.Errorf("%s: marshal request: %w", step, err)
+		return c.failLLMCall(step, "marshal request", start, err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(payload))
 	if err != nil {
-		return "", fmt.Errorf("%s: create request: %w", step, err)
+		return c.failLLMCall(step, "create request", start, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("%s: call chat completions: %w", step, err)
+		return c.failLLMCall(step, "call chat completions", start, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1_000_000))
 	if err != nil {
-		return "", fmt.Errorf("%s: read response: %w", step, err)
+		return c.failLLMCall(step, "read response", start, err)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		elapsed := time.Since(start)
+		log.Printf("LLM %s failed in %.1fs: status %d", step, elapsed.Seconds(), resp.StatusCode)
 		return "", fmt.Errorf("%s: chat completions returned status %d: %s", step, resp.StatusCode, summarize(string(body), 500))
 	}
 
 	var chatResp chatCompletionResponse
 	if err := json.Unmarshal(body, &chatResp); err != nil {
-		return "", fmt.Errorf("%s: parse chat completions response: %w; response: %s", step, err, summarize(string(body), 300))
+		elapsed := time.Since(start)
+		log.Printf("LLM %s failed in %.1fs: parse chat completions response", step, elapsed.Seconds())
+		return "", fmt.Errorf("%s: parse chat completions response after %.1fs: %w; response: %s", step, elapsed.Seconds(), err, summarize(string(body), 300))
 	}
 	if len(chatResp.Choices) == 0 || strings.TrimSpace(chatResp.Choices[0].Message.Content) == "" {
-		return "", fmt.Errorf("%s: chat completions response has no message content", step)
+		elapsed := time.Since(start)
+		log.Printf("LLM %s failed in %.1fs: empty message content", step, elapsed.Seconds())
+		return "", fmt.Errorf("%s: chat completions response has no message content after %.1fs", step, elapsed.Seconds())
 	}
 
+	elapsed := time.Since(start)
+	log.Printf("LLM %s finished in %.1fs", step, elapsed.Seconds())
 	return chatResp.Choices[0].Message.Content, nil
+}
+
+func (c *RealClient) failLLMCall(step string, phase string, start time.Time, err error) (string, error) {
+	elapsed := time.Since(start)
+	log.Printf("LLM %s failed in %.1fs: %s", step, elapsed.Seconds(), phase)
+
+	if isTimeoutError(err) {
+		return "", fmt.Errorf("%s: %s timeout after %.1fs (timeout seconds=%d): %w; increase AI_TIMEOUT_SECONDS or reduce input size", step, phase, elapsed.Seconds(), int(c.timeout.Seconds()), err)
+	}
+
+	return "", fmt.Errorf("%s: %s failed after %.1fs: %w", step, phase, elapsed.Seconds(), err)
+}
+
+func isTimeoutError(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
 }
 
 func chatCompletionsEndpoint(baseURL string) string {

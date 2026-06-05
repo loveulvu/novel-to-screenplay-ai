@@ -28,6 +28,7 @@ func main() {
 	log.Printf("AI model: %s", aiStatus.AIModel)
 	log.Printf("AI base URL configured: %t", aiStatus.AIBaseURLConfigured)
 	log.Printf("AI API key configured: %t", aiStatus.AIAPIKeyConfigured)
+	log.Printf("AI timeout seconds: %d", aiStatus.AITimeoutSeconds)
 	log.Printf("novel-to-screenplay-ai backend listening on %s", addr)
 	if err := r.Run(addr); err != nil {
 		log.Fatal(err)

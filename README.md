@@ -11,9 +11,12 @@ AI_PROVIDER=real
 AI_API_KEY=your_api_key_here
 AI_BASE_URL=https://your-provider-compatible-api/v1
 AI_MODEL=your-model-name
+AI_TIMEOUT_SECONDS=180
 ```
 
 不要提交 `.env`，只提交 `.env.example`。真实模式下，`/api/generate` 会依次调用真实模型完成章节分析、Story Bible 合并和剧本 JSON 生成，再经过后端校验并导出 YAML。
+
+`AI_TIMEOUT_SECONDS` 用于控制每次真实 LLM HTTP 请求的超时时间，未配置时默认 180 秒。长文本在合并 Story Bible 或生成剧本阶段可能耗时更久，可以适当调大；配置必须是正整数秒数。
 
 ## 前端演示页
 

@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 )
+
+const defaultAITimeoutSeconds = 180
 
 var loadEnvOnce sync.Once
 
@@ -16,6 +19,7 @@ type RuntimeStatus struct {
 	AIModel             string `json:"ai_model"`
 	AIBaseURLConfigured bool   `json:"ai_base_url_configured"`
 	AIAPIKeyConfigured  bool   `json:"ai_api_key_configured"`
+	AITimeoutSeconds    int    `json:"ai_timeout_seconds"`
 }
 
 func LoadEnv() {
@@ -38,11 +42,17 @@ func NewClientFromEnv() (Client, error) {
 		return nil, fmt.Errorf("unknown AI_PROVIDER %q; expected mock or real", provider)
 	}
 
+	timeoutSeconds, err := aiTimeoutSecondsFromEnv()
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := Config{
-		Provider: provider,
-		APIKey:   strings.TrimSpace(os.Getenv("AI_API_KEY")),
-		BaseURL:  strings.TrimSpace(os.Getenv("AI_BASE_URL")),
-		Model:    strings.TrimSpace(os.Getenv("AI_MODEL")),
+		Provider:       provider,
+		APIKey:         strings.TrimSpace(os.Getenv("AI_API_KEY")),
+		BaseURL:        strings.TrimSpace(os.Getenv("AI_BASE_URL")),
+		Model:          strings.TrimSpace(os.Getenv("AI_MODEL")),
+		TimeoutSeconds: timeoutSeconds,
 	}
 
 	var missing []string
@@ -64,13 +74,31 @@ func NewClientFromEnv() (Client, error) {
 
 func RuntimeStatusFromEnv() RuntimeStatus {
 	LoadEnv()
+	timeoutSeconds, err := aiTimeoutSecondsFromEnv()
+	if err != nil {
+		timeoutSeconds = defaultAITimeoutSeconds
+	}
 
 	return RuntimeStatus{
 		AIProvider:          normalizedProvider(os.Getenv("AI_PROVIDER")),
 		AIModel:             strings.TrimSpace(os.Getenv("AI_MODEL")),
 		AIBaseURLConfigured: strings.TrimSpace(os.Getenv("AI_BASE_URL")) != "",
 		AIAPIKeyConfigured:  strings.TrimSpace(os.Getenv("AI_API_KEY")) != "",
+		AITimeoutSeconds:    timeoutSeconds,
 	}
+}
+
+func aiTimeoutSecondsFromEnv() (int, error) {
+	value := strings.TrimSpace(os.Getenv("AI_TIMEOUT_SECONDS"))
+	if value == "" {
+		return defaultAITimeoutSeconds, nil
+	}
+
+	seconds, err := strconv.Atoi(value)
+	if err != nil || seconds <= 0 {
+		return 0, fmt.Errorf("AI_TIMEOUT_SECONDS must be a positive integer number of seconds")
+	}
+	return seconds, nil
 }
 
 func normalizedProvider(value string) string {

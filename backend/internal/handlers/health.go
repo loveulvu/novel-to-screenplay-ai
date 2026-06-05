@@ -18,5 +18,6 @@ func Health(c *gin.Context) {
 		"ai_model":               status.AIModel,
 		"ai_base_url_configured": status.AIBaseURLConfigured,
 		"ai_api_key_configured":  status.AIAPIKeyConfigured,
+		"ai_timeout_seconds":     status.AITimeoutSeconds,
 	})
 }

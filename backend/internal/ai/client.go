@@ -10,10 +10,11 @@ import (
 )
 
 type Config struct {
-	Provider string
-	APIKey   string
-	BaseURL  string
-	Model    string
+	Provider       string
+	APIKey         string
+	BaseURL        string
+	Model          string
+	TimeoutSeconds int
 }
 
 const ProviderMock = "mock"
