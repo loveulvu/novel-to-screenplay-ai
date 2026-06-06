@@ -5,6 +5,24 @@ import (
 	"testing"
 )
 
+func TestParseHeadingsOnSeparateLines(t *testing.T) {
+	input := `第四节：古月方源！
+正文A
+第五节：人祖三蛊，希望开窍
+正文B
+第六节：未来的路，会很精彩
+正文C`
+
+	chapters := ParseChapters(input)
+
+	if len(chapters) != 3 {
+		t.Fatalf("expected 3 chapters, got %d", len(chapters))
+	}
+	assertChapter(t, chapters[0], 1, "古月方源！", "正文A")
+	assertChapter(t, chapters[1], 2, "人祖三蛊，希望开窍", "正文B")
+	assertChapter(t, chapters[2], 3, "未来的路，会很精彩", "正文C")
+}
+
 func TestParseChineseChapters(t *testing.T) {
 	input := `第1章 开端
 这里是开端正文
@@ -168,6 +186,24 @@ func TestParsePaginatedSections(t *testing.T) {
 	assertChapterContains(t, chapters[2], 3, "未来的路，会很精彩", "正文E", "正文F")
 }
 
+func TestParseInlinePaginatedSectionHeading(t *testing.T) {
+	input := `第四节：古月方源！ (第1/2页) 朝阳升起来。
+第四节：古月方源！ (第2/2页) 山雾不是很浓。
+第五节：人祖三蛊，希望开窍 (第1/2页) 方源踏上对岸。
+第五节：人祖三蛊，希望开窍 (第2/2页) 希望蛊汇入体内。
+第六节：未来的路，会很精彩 (第1/2页) 方源测试结束。
+第六节：未来的路，会很精彩 (第2/2页) 方正走到四十三步。`
+
+	chapters := ParseChapters(input)
+
+	if len(chapters) != 3 {
+		t.Fatalf("expected 3 chapters, got %d", len(chapters))
+	}
+	assertChapterContains(t, chapters[0], 1, "古月方源！", "朝阳升起来。", "山雾不是很浓。")
+	assertChapterContains(t, chapters[1], 2, "人祖三蛊，希望开窍", "方源踏上对岸。", "希望蛊汇入体内。")
+	assertChapterContains(t, chapters[2], 3, "未来的路，会很精彩", "方源测试结束。", "方正走到四十三步。")
+}
+
 func TestDoNotTreatStepsAsHeadings(t *testing.T) {
 	input := `第1章 开端
 方源走到第二十七步。
@@ -187,6 +223,19 @@ func TestDoNotTreatStepsAsHeadings(t *testing.T) {
 	assertChapterContains(t, chapters[0], 1, "开端", "第二十七步")
 	assertChapterContains(t, chapters[1], 2, "发展", "三十六步")
 	assertChapterContains(t, chapters[2], 3, "结果", "四十三步")
+}
+
+func TestParseMixedWhitespaceAndCRLF(t *testing.T) {
+	input := "\uFEFF正文前言。\r\n　第四节：古月方源！ （第１／２页） 朝阳升起来。\r\n第四节：古月方源！ （第２／２页） 山雾不是很浓。\r\n正文末尾。　第五节：人祖三蛊，希望开窍 (第1/1页) 方源踏上对岸。\r第六节：未来的路，会很精彩 (第1/1页) 方正走到四十三步。"
+
+	chapters := ParseChapters(input)
+
+	if len(chapters) != 3 {
+		t.Fatalf("expected 3 chapters, got %d", len(chapters))
+	}
+	assertChapterContains(t, chapters[0], 1, "古月方源！", "朝阳升起来。", "山雾不是很浓。", "正文末尾。")
+	assertChapterContains(t, chapters[1], 2, "人祖三蛊，希望开窍", "方源踏上对岸。")
+	assertChapterContains(t, chapters[2], 3, "未来的路，会很精彩", "方正走到四十三步。")
 }
 
 func TestParseChapterHeadingStableKeys(t *testing.T) {

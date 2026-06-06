@@ -9,9 +9,12 @@ var (
 	chineseChapterHeadingPattern = regexp.MustCompile(`^\s*第\s*([0-9０-９]+|[一二三四五六七八九十百千万零〇两]+)\s*([章节])\s*[:：\-—]?\s*(.*)$`)
 	englishChapterHeadingPattern = regexp.MustCompile(`(?i)^\s*chapter\s+([0-9]+)(?:\s+|[:：]\s*|$)(.*)$`)
 	pageMarkPattern              = regexp.MustCompile(`\s*[\(（]\s*第\s*[0-9０-９]+\s*[/／]\s*[0-9０-９]+\s*页\s*[\)）]\s*$`)
+	inlineHeadingPattern         = regexp.MustCompile(`(?i)([^\n])([ \t]*(?:第\s*(?:[0-9０-９]+|[一二三四五六七八九十百千万零〇两]+)\s*[章节]|chapter\s+[0-9]+))`)
+	pageMarkWithBodyPattern      = regexp.MustCompile(`([\(（]\s*第\s*[0-9０-９]+\s*[/／]\s*[0-9０-９]+\s*页\s*[\)）])[ \t]*([^\n])`)
 )
 
 func ParseChapters(input string) []Chapter {
+	input = normalizeInputText(input)
 	lines := strings.Split(input, "\n")
 	chapters := make([]Chapter, 0)
 	var current *Chapter
@@ -51,6 +54,17 @@ func ParseChapters(input string) []Chapter {
 
 	flush()
 	return chapters
+}
+
+func normalizeInputText(input string) string {
+	input = strings.ReplaceAll(input, "\r\n", "\n")
+	input = strings.ReplaceAll(input, "\r", "\n")
+	input = strings.ReplaceAll(input, "\uFEFF", "")
+	input = strings.ReplaceAll(input, "\u3000", " ")
+
+	input = inlineHeadingPattern.ReplaceAllString(input, "$1\n$2")
+	input = pageMarkWithBodyPattern.ReplaceAllString(input, "$1\n$2")
+	return input
 }
 
 func parseChapterHeading(line string) (string, string, bool) {
