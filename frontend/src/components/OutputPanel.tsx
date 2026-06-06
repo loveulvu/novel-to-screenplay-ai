@@ -7,7 +7,7 @@ import { ValidationResult } from "@/components/ValidationResult";
 import { YamlPreview } from "@/components/YamlPreview";
 import type { GenerateResponse } from "@/lib/api";
 
-type OutputSection = "Overview" | "Quality" | "YAML";
+type OutputSection = "Overview" | "Validation" | "YAML";
 
 type OutputPanelProps = {
   result: GenerateResponse | null;
@@ -26,10 +26,10 @@ export function OutputPanel({ result, loading }: OutputPanelProps) {
       <div className="output-card-header">
         <div>
           <span className="section-kicker">OUTPUT</span>
-          <h2>生成结果</h2>
+          <h2>Generated Screenplay</h2>
         </div>
         <Segmented<OutputSection>
-          options={["Overview", "Quality", "YAML"]}
+          options={["Overview", "Validation", "YAML"]}
           value={section}
           onChange={setSection}
           disabled={!result || loading}
@@ -55,7 +55,7 @@ export function OutputPanel({ result, loading }: OutputPanelProps) {
           />
         ) : section === "Overview" ? (
           <OverviewContent result={result} />
-        ) : section === "Quality" ? (
+        ) : section === "Validation" ? (
           <ValidationResult validation={result.validation} fidelityResult={result.fidelity_result} embedded />
         ) : (
           <YamlPreview yaml={result.screenplay_yaml} embedded />

@@ -12,8 +12,8 @@ export function ValidationResult({ validation, fidelityResult, embedded = false 
     return (
       <Card className="tool-card">
         <div className="card-heading">
-          <span className="section-kicker">QUALITY</span>
-          <h2>质量检查</h2>
+          <span className="section-kicker">VALIDATION</span>
+          <h2>Validation</h2>
         </div>
         <p className="validation-waiting">生成后将检查 Schema 结构和事实一致性。</p>
       </Card>
@@ -23,8 +23,8 @@ export function ValidationResult({ validation, fidelityResult, embedded = false 
   const content = (
     <>
       <div className="card-heading">
-        <span className="section-kicker">QUALITY</span>
-        <h2>质量检查</h2>
+        <span className="section-kicker">VALIDATION</span>
+        <h2>Validation</h2>
         <p>Schema Validate 检查结构完整性，Fidelity Check 检查内容是否忠实于原文事实。</p>
       </div>
       <div className="quality-grid">

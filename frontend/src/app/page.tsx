@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Card, ConfigProvider, Tag } from "antd";
+import { Alert, ConfigProvider, Tag } from "antd";
 import { GeneratePanel } from "@/components/GeneratePanel";
 import { NovelInput } from "@/components/NovelInput";
 import { OutputPanel } from "@/components/OutputPanel";
@@ -22,10 +22,9 @@ Chapter 3 舞台对峙
 林澈握紧钥匙，决定启动时钟，查清父亲消失的真相。`;
 
 const workflowSteps = [
-  ["01", "章节分析", "逐章提取人物、事件与场景"],
-  ["02", "故事合并", "构建统一的 Story Bible"],
-  ["03", "剧本生成", "生成结构化 YAML 剧本"],
-  ["04", "质量检查", "校验 Schema 与事实一致性"]
+  ["01", "Chapter Analysis", "Extract characters, events, and scenes."],
+  ["02", "Story Bible", "Merge facts into a consistent story source."],
+  ["03", "YAML Screenplay", "Generate structured screenplay output."]
 ];
 
 export default function Home() {
@@ -36,7 +35,7 @@ export default function Home() {
 
   async function handleGenerate() {
     if (!novelText.trim()) {
-      setError("请至少输入 2 个章节或分节。");
+      setError("请至少输入 3 个章节或分节。");
       return;
     }
 
@@ -72,10 +71,12 @@ export default function Home() {
       }}
     >
       <main className="page-shell">
-        <header className="site-header">
-          <div>
+        <header className="hero-section">
+          <div className="hero-copy">
+            <span className="hero-eyebrow">STRUCTURED STORY ADAPTATION</span>
             <h1>Novel to Screenplay AI</h1>
-            <p>多章节小说 → Story Bible → YAML 剧本</p>
+            <p className="hero-subtitle">Convert multi-chapter novels into structured Story Bible and screenplay YAML.</p>
+            <p className="hero-description">Paste 3–5 chapters, analyze story facts, and export validated YAML.</p>
           </div>
           <div className="status-tags" aria-label="系统能力">
             <Tag><i className="status-dot" />Real LLM</Tag>
@@ -84,13 +85,29 @@ export default function Home() {
           </div>
         </header>
 
+        <section className="process-strip" aria-label="Generation process">
+          {workflowSteps.map(([number, title, description]) => (
+            <article className="process-step" key={number}>
+              <span>{number}</span>
+              <div>
+                <strong>{title}</strong>
+                <p>{description}</p>
+              </div>
+            </article>
+          ))}
+        </section>
+
         {error ? (
           <Alert
             className="error-card"
             type="error"
             showIcon
             message={error}
-            description="确认服务与输入后，可在左侧重新发起生成。"
+            description={
+              error === "请至少输入 3 个章节或分节。"
+                ? "建议粘贴 3～5 章小说内容，以便生成更稳定的 Story Bible 和 YAML 剧本。"
+                : "确认服务与输入后，可在左侧重新发起生成。"
+            }
             closable
             onClose={() => setError("")}
           />
@@ -110,23 +127,6 @@ export default function Home() {
               }}
             />
             <GeneratePanel loading={loading} onGenerate={handleGenerate} />
-            <Card className="tool-card workflow-card">
-              <div className="card-heading">
-                <span className="section-kicker">WORKFLOW</span>
-                <h2>从小说到剧本</h2>
-              </div>
-              <ol className="workflow-list">
-                {workflowSteps.map(([number, title, description]) => (
-                  <li key={number}>
-                    <span>{number}</span>
-                    <div>
-                      <strong>{title}</strong>
-                      <p>{description}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </Card>
           </aside>
 
           <section className="result-column">

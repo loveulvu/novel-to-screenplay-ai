@@ -12,8 +12,8 @@ export function NovelInput({ value, onChange, onUseSample }: NovelInputProps) {
   return (
     <Card className="tool-card input-panel">
       <div className="card-heading">
-        <span className="section-kicker">INPUT</span>
-        <h2>输入多章节小说</h2>
+        <span className="section-kicker">SOURCE</span>
+        <h2>Source Novel</h2>
         <p>支持第 X 章 / 第 X 节 / Chapter X，推荐 3～5 章。</p>
       </div>
       <TextArea
