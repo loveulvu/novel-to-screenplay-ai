@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"novel-to-screenplay-ai/internal/analysis"
+	"novel-to-screenplay-ai/internal/fidelity"
 	"novel-to-screenplay-ai/internal/novel"
 	"novel-to-screenplay-ai/internal/screenplay"
 	"novel-to-screenplay-ai/internal/story"
@@ -36,6 +37,7 @@ func BuildChapterAnalysisPrompt(chapter novel.Chapter) string {
 - key_events
 - conflicts
 - scene_candidates
+- factual_anchors
 
 characters 每一项必须包含：
 - name
@@ -63,6 +65,10 @@ scene_candidates 每一项必须包含：
 - characters、locations、key_events、conflicts、scene_candidates 都不得新增原文没有的事实
 - scene_candidates 的 purpose 可以概括叙事功能，但不能新增剧情
 - 对心理活动可以概括，但不能改写成原文没有发生的外部行为
+- factual_anchors 只记录原文明确出现或强烈直接支持的硬事实，不要加入推测、猜测或画面补写
+- factual_anchors 每条应是短句，适合给后续剧本生成做事实约束
+- factual_anchors 优先记录关键数字、步数、资质等级、人物关系、地点、事件结果、明确出现的专有名词、原文明确出现的关键短句
+- factual_anchors 不能写原文没有出现的细节
 
 characters 示例：
 [
@@ -148,6 +154,7 @@ type screenplayFactAnchor struct {
 	ChapterNumber   int                       `json:"chapter_number"`
 	ChapterTitle    string                    `json:"chapter_title"`
 	Summary         string                    `json:"summary"`
+	FactualAnchors  []string                  `json:"factual_anchors"`
 	KeyEvents       []string                  `json:"key_events"`
 	Conflicts       []string                  `json:"conflicts"`
 	SceneCandidates []analysis.SceneCandidate `json:"scene_candidates"`
@@ -162,7 +169,7 @@ func BuildScreenplayPrompt(bible story.StoryBible, analyses []analysis.ChapterAn
 
 这是忠实于原文事实的剧本化改编初稿，不是完全二创。
 
-ChapterAnalyses 是最终剧本生成的事实锚点。生成 scenes、dialogues 和 actions 时，必须优先遵守每章的 summary、key_events、conflicts、scene_candidates。
+ChapterAnalyses 是最终剧本生成的事实锚点。生成 scenes、dialogues 和 actions 时，必须优先遵守每章的 factual_anchors、summary、key_events、conflicts、scene_candidates。
 
 忠实改编原则：
 %s
@@ -217,13 +224,18 @@ dialogues 每一项必须包含：
 - 不要新增原文没有出现的人物
 
 关键事实保留规则：
-- 以下内容必须来自 StoryBible 或 ChapterAnalyses，不得改写：人物姓名、人物关系、地点、事件结果、资质等级、步数、数量、章节归属、明确出现过的专有名词
+- 所有具体事实必须可追溯到 StoryBible、ChapterAnalysis.factual_anchors、ChapterAnalysis.key_events 或 ChapterAnalysis.scene_candidates
+- 以下内容不得改写：人物姓名、人物关系、地点、事件结果、资质等级、步数、数量、章节归属、明确出现过的专有名词
+- 如果没有依据，只能概括表达，不能补具体细节
 - “二十七步”不能改成“不足十步”
 - “三十六步”不能改成“三十步”
 - “四十三步”不能改成“四十步”
 - “丙等资质”不能改成“丁等资质”
 - “甲等资质”不能改成“乙等资质”
 - “希望蛊数量偏少”不能改成“只出现一只希望蛊”
+- 不得把“方正”写成“古月漠尘的孙儿”，除非 factual_anchors 明确支持
+- 不得新增“通过蛊器观察”“袖口颤动”“第十七步额头冒汗”等无依据观察方式、身体反应或细节
+- 不得新增“作弊丹、作弊蛊、符纸”等具体作弊道具
 
 章节归属规则：
 - 每个 scene.source_chapter 必须和 ChapterAnalyses 中的事实来源一致
@@ -260,12 +272,122 @@ func buildScreenplayFactAnchors(analyses []analysis.ChapterAnalysis) []screenpla
 			ChapterNumber:   item.ChapterNumber,
 			ChapterTitle:    item.ChapterTitle,
 			Summary:         item.Summary,
+			FactualAnchors:  item.FactualAnchors,
 			KeyEvents:       item.KeyEvents,
 			Conflicts:       item.Conflicts,
 			SceneCandidates: item.SceneCandidates,
 		})
 	}
 	return anchors
+}
+
+type fidelityPromptPayload struct {
+	Screenplay      screenplay.Screenplay    `json:"screenplay"`
+	StoryBible      story.StoryBible         `json:"story_bible"`
+	ChapterAnalyses []screenplayFactAnchor   `json:"chapter_analyses"`
+	FidelityIssues  []fidelity.FidelityIssue `json:"fidelity_issues,omitempty"`
+}
+
+func BuildFidelityCheckPrompt(current screenplay.Screenplay, bible story.StoryBible, analyses []analysis.ChapterAnalysis) string {
+	payload, _ := json.MarshalIndent(fidelityPromptPayload{
+		Screenplay:      current,
+		StoryBible:      bible,
+		ChapterAnalyses: buildScreenplayFactAnchors(analyses),
+	}, "", "  ")
+
+	return fmt.Sprintf(`请检查 screenplay 是否忠实于 StoryBible 和 ChapterAnalyses 中的事实锚点，输出 fidelity.FidelityResult JSON。
+
+只检查事实一致性，不评价文笔。
+
+重点检查：
+1. 关键数字是否改错
+2. 资质等级是否改错
+3. 人物关系是否改错
+4. 地点是否凭空新增
+5. 道具是否凭空新增
+6. 观察方式是否凭空新增
+7. 身体反应是否凭空新增
+8. 章节归属是否混乱
+9. actions 是否补写原文没有的具体事实
+10. dialogues 是否承载了原文没有的关键信息
+11. 如果 screenplay 的 title、characters 或 scenes 为空，必须报告 high severity issue，不能判定 passed=true
+
+事实依据只能来自：
+- StoryBible
+- ChapterAnalysis.factual_anchors
+- ChapterAnalysis.key_events
+- ChapterAnalysis.scene_candidates
+
+unsupported claims 示例：
+- 把“二十七步”改成其他数字
+- 把“方正”写成“古月漠尘的孙儿”
+- 新增“通过蛊器观察”
+- 新增“袖口颤动”
+- 新增“第十七步额头冒汗”
+- 新增“作弊丹、作弊蛊、符纸”等具体作弊道具
+
+返回格式：
+{
+  "passed": true,
+  "issues": []
+}
+
+或：
+{
+  "passed": false,
+  "issues": [
+    {
+      "field": "scenes[2].dialogues[4].line",
+      "severity": "high",
+      "problem": "问题说明",
+      "suggestion": "修复建议"
+    }
+  ]
+}
+
+severity 只能是 low、medium、high。
+
+要求：
+- 只返回 JSON
+- 不要 markdown
+- 不要解释
+- 不要输出 YAML
+- 不要省略字段
+
+输入 JSON：
+%s`, string(payload))
+}
+
+func BuildFidelityRepairPrompt(current screenplay.Screenplay, bible story.StoryBible, analyses []analysis.ChapterAnalysis, result fidelity.FidelityResult) string {
+	payload, _ := json.MarshalIndent(fidelityPromptPayload{
+		Screenplay:      current,
+		StoryBible:      bible,
+		ChapterAnalyses: buildScreenplayFactAnchors(analyses),
+		FidelityIssues:  result.Issues,
+	}, "", "  ")
+
+	return fmt.Sprintf(`请根据 fidelity_issues 修复 screenplay.Screenplay JSON。
+
+修复规则：
+- 只修复 issues 指出的事实问题
+- 不改变 YAML 主 Schema
+- 不新增无依据事实
+- 不删除必填字段
+- 返回完整 Screenplay JSON
+- 缺失或错误事实只能从 StoryBible、ChapterAnalysis.factual_anchors、key_events、scene_candidates 中补
+- dialogues 可以保守改写，但不得承载新事实
+- actions 必须是完整可拍摄动作句，且不得新增具体道具、观察方式、身体反应或亲属关系
+- source_chapters 可保留当前值，后端会再次用 ChapterAnalyses 确定性覆盖
+
+要求：
+- 只返回 JSON
+- 不要 markdown
+- 不要解释
+- 不要输出 YAML
+- 不要省略 validator 必需字段
+
+输入 JSON：
+%s`, string(payload))
 }
 
 func BuildRepairJSONPrompt(originalPrompt string, rawOutput string, parseError error, schema string) string {
@@ -350,6 +472,7 @@ func chapterAnalysisSchemaDescription() string {
   "locations": [string],
   "key_events": [string],
   "conflicts": [string],
+  "factual_anchors": [string],
   "scene_candidates": [
     {
       "location": string,
@@ -430,6 +553,21 @@ func screenplaySchemaDescription() string {
         }
       ],
       "actions": [string]
+    }
+  ]
+}`
+}
+
+func fidelityResultSchemaDescription() string {
+	return `fidelity.FidelityResult:
+{
+  "passed": boolean,
+  "issues": [
+    {
+      "field": string,
+      "severity": "low" | "medium" | "high",
+      "problem": string,
+      "suggestion": string
     }
   ]
 }`

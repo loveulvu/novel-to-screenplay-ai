@@ -80,6 +80,7 @@ function ChapterAnalyses({ analyses }: { analyses: ChapterAnalysis[] }) {
             <FieldList title="地点" items={chapter.locations} />
             <FieldList title="关键事件" items={chapter.key_events} />
             <FieldList title="冲突" items={chapter.conflicts} />
+            <FieldList title="事实锚点" items={chapter.factual_anchors} />
 
             <div className="field-block">
               <h4>候选场景</h4>

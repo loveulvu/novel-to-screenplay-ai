@@ -1,5 +1,63 @@
 # novel-to-screenplay-ai
 
+面向小说作者的 AI 剧本化改编工具。用户粘贴 3 到 5 章小说文本后，系统会按章节做结构化分析，合并全局 Story Bible，再生成可校验、可复制、可下载的 YAML 剧本初稿。
+
+本项目不是一次性把全文丢给模型生成 YAML 的简单 prompt 套壳，而是固定 AI Workflow / Pipeline：先做章节级 Map 分析，再做 Reduce 合并，最后用事实锚点、事实一致性检查和 Schema 校验约束剧本生成。
+
+## 核心亮点
+
+- 多章节长文本处理
+- Map-Reduce 风格 AI Workflow
+- Chapter-level structured analysis
+- Story Bible 全局合并
+- Factual Anchors 事实锚点
+- Fidelity Check 事实一致性检查
+- Fidelity Repair 一次事实修复
+- Schema Validate 结构校验
+- YAML Export 导出
+
+## 架构流程
+
+```text
+Novel Text
+-> Parse Chapters
+-> Analyze Each Chapter
+-> Extract Factual Anchors
+-> Merge Story Bible
+-> Generate Screenplay JSON
+-> Fidelity Check & Repair
+-> Schema Validate
+-> Export YAML
+```
+
+这条链路是固定 Pipeline，不是完全自主 agent。`Analyze Each Chapter` 是 Map 阶段，每章单独结构化分析；`Merge Story Bible` 是 Reduce 阶段，把多章人物、时间线、冲突和场景计划合并为全局资料。
+
+## MVP 功能
+
+- 粘贴至少三章小说文本
+- 识别 `第1章`、`第一章`、`第一节`、`Chapter 1` 等章节标题
+- 输出章节级 `ChapterAnalysis`
+- 抽取每章 `factual_anchors`
+- 合并 `StoryBible`
+- 生成结构化 `Screenplay` JSON
+- 执行 Fidelity Check 和必要的一次 Fidelity Repair
+- 执行 Schema Validate
+- 展示、复制、下载最终 YAML
+
+本版本不包含登录、数据库、历史记录、多人协作、PDF/Word 解析、文件上传和复杂编辑器。
+
+## 题目对应关系
+
+七牛云 × XEngineer 暑期实训营第三批次议题三关注“AI 小说转剧本工具”。本项目对应的 MVP 是：输入多章节小说，经过长文本章节级分析、全局 Story Bible 合并、结构化剧本生成、事实一致性检查和 YAML 导出，形成可演示、可解释的小说转剧本工作流。
+
+## 技术栈
+
+- 前端：Next.js + TypeScript
+- 后端：Go + Gin
+- 中间态：JSON / Go struct
+- 最终输出：YAML
+- AI：mock client + OpenAI-compatible real client
+
 ## AI Provider 配置
 
 后端默认使用 mock 模式；当 `AI_PROVIDER` 为空或为 `mock` 时，`/api/generate` 会使用内置 `MockClient`。
@@ -14,73 +72,18 @@ AI_MODEL=your-model-name
 AI_TIMEOUT_SECONDS=180
 ```
 
-不要提交 `.env`，只提交 `.env.example`。真实模式下，`/api/generate` 会依次调用真实模型完成章节分析、Story Bible 合并和剧本 JSON 生成，再经过后端校验并导出 YAML。
-
-`AI_TIMEOUT_SECONDS` 用于控制每次真实 LLM HTTP 请求的超时时间，未配置时默认 180 秒。长文本在合并 Story Bible 或生成剧本阶段可能耗时更久，可以适当调大；配置必须是正整数秒数。
-
-## 前端演示页
-
-前端演示页现在会展示 `/api/generate` 返回的完整链路结果，包括章节分析、Story Bible、YAML 剧本和 Schema 校验结果。
-
-本地演示流程：
-
-1. 启动后端：`cd backend && go run ./cmd/server`
-2. 启动前端：`cd frontend && npm run dev`
-3. 打开前端页面，点击“填入示例小说”
-4. 点击“生成剧本 YAML”
-5. 查看章节分析、Story Bible、校验结果，并下载 `screenplay.yaml`
-
-AI 小说转剧本工具 MVP，用于参加七牛云 × XEngineer 暑期实训营第三批次议题三。项目目标是把用户粘贴的至少 3 个章节小说文本，转换为结构化剧本 YAML。
-
-## 题目对应关系
-
-议题要求关注长文本小说到剧本的结构化转换。本项目把流程拆成可解释的固定 Pipeline：章节解析、章节级分析、全局故事资料合并、剧本生成、校验和 YAML 导出。
-
-## MVP 功能
-
-- 粘贴至少三章小说文本。
-- 识别 `第1章`、`第一章`、`Chapter 1`、`chapter 1`。
-- 返回章节级结构化分析 `ChapterAnalysis`。
-- 合并全局故事资料 `StoryBible`。
-- 生成结构化 `Screenplay` JSON。
-- 校验必要字段。
-- 展示、复制、下载最终 YAML。
-
-本版本不包含登录、数据库、历史记录、多人协作、PDF/Word 解析和复杂编辑器。
-
-## 技术栈
-
-- 前端：Next.js + TypeScript
-- 后端：Go + net/http
-- 接口中间态：JSON
-- 最终输出：YAML
-- AI 客户端：`ai.MockClient` mock 实现，暂不接真实 LLM API
-
-## 系统流程
-
-```text
-Parse -> Analyze -> Merge -> Generate -> Validate -> Export
-```
-
-- Parse：切分小说章节。
-- Analyze：逐章提取结构化分析。
-- Merge：合并成全局 Story Bible。
-- Generate：生成剧本 JSON。
-- Validate：检查剧本必要字段。
-- Export：导出 YAML。
+不要提交 `.env`，只提交 `.env.example`。`AI_TIMEOUT_SECONDS` 用于控制每次真实 LLM HTTP 请求的超时时间，未配置时默认 180 秒。长文本在合并 Story Bible、生成剧本或事实检查阶段可能耗时更久，可以适当调大；配置必须是正整数秒数。
 
 ## 本地运行
 
-### 启动后端
+启动后端：
 
 ```bash
 cd backend
 go run ./cmd/server
 ```
 
-默认监听 `http://localhost:8080`。
-
-### 启动前端
+启动前端：
 
 ```bash
 cd frontend
@@ -88,7 +91,7 @@ npm install
 npm run dev
 ```
 
-默认访问 `http://localhost:3000`。如后端地址不同，可设置：
+默认后端地址是 `http://localhost:8080`，默认前端地址是 `http://localhost:3000`。如后端地址不同，可设置：
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 npm run dev
@@ -96,30 +99,13 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 npm run dev
 
 ## 接口测试
 
-### GET /api/health
-
 ```bash
 curl http://localhost:8080/api/health
 ```
 
-期望返回：
+`POST /api/generate` 成功后返回章节数、章节分析、Story Bible、剧本 JSON、剧本 YAML、Schema 校验结果、Fidelity Check 结果和 meta 信息。
 
-```json
-{
-  "status": "ok",
-  "service": "novel-to-screenplay-ai"
-}
-```
-
-### POST /api/generate
-
-```bash
-curl -X POST http://localhost:8080/api/generate \
-  -H "Content-Type: application/json" \
-  -d "{\"novel_text\":\"第1章 开端\n第一章内容\n第二章 发展\n第二章内容\nChapter 3 结局\n第三章内容\"}"
-```
-
-成功后返回章节数、章节分析、Story Bible、剧本 JSON、剧本 YAML 和校验结果。少于 3 章时返回：
+少于 3 章时返回：
 
 ```json
 {
@@ -129,15 +115,23 @@ curl -X POST http://localhost:8080/api/generate \
 
 ## Demo 说明
 
-示例输入位于 `examples/input_novel.txt`，对应中间态示例位于 `examples/chapter_analysis.json` 和 `examples/story_bible.json`，最终输出示例位于 `examples/output_screenplay.yaml`。
+演示时建议展示：
 
-课堂或答辩演示时，可以先展示 `docs/architecture.md` 解释 Pipeline，再运行前后端，把示例小说粘贴到页面中生成 YAML。
+- 输入三章小说
+- 章节分析
+- Factual Anchors 事实锚点
+- Story Bible
+- YAML 剧本
+- Schema 校验结果
+- Fidelity Check 结果
+- 复制 / 下载 YAML
 
-## 接入真实 LLM 的位置
+示例输入位于 `examples/input_novel.txt`，中间态示例位于 `examples/chapter_analysis.json` 和 `examples/story_bible.json`，最终输出示例位于 `examples/output_screenplay.yaml`。
 
-后续接入真实 OpenAI、七牛云或其他 LLM API 时，优先修改：
+## 当前限制
 
-- `backend/internal/ai/client.go`
-- `backend/internal/ai/mock_client.go`
-
-建议新增真实 client，例如 `real_client.go`，实现与 `MockClient` 相同的方法：`AnalyzeChapter`、`MergeStoryBible`、`GenerateScreenplay`。这样可以保持 Parse -> Analyze -> Merge -> Generate -> Validate -> Export 的主流程不变。
+- 真实生成质量仍取决于 LLM
+- Fidelity Check 可降低事实偏差风险，但不能保证 100% 无幻觉
+- 推荐输入 3 到 5 章
+- 当前不支持 PDF/Word 解析
+- 当前不支持历史记录和多人协作

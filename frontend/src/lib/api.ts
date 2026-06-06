@@ -22,6 +22,7 @@ export type ChapterAnalysis = {
   key_events: string[];
   conflicts: string[];
   scene_candidates: SceneCandidate[];
+  factual_anchors: string[];
 };
 
 export type StoryCharacter = {
@@ -96,6 +97,18 @@ export type Validation = {
   errors: string[];
 };
 
+export type FidelityIssue = {
+  field: string;
+  severity: "low" | "medium" | "high" | string;
+  problem: string;
+  suggestion: string;
+};
+
+export type FidelityResult = {
+  passed: boolean;
+  issues: FidelityIssue[];
+};
+
 export type GenerateMeta = {
   ai_provider: "mock" | "real" | string;
   ai_model: string;
@@ -108,6 +121,7 @@ export type GenerateResponse = {
   screenplay_json: Screenplay;
   screenplay_yaml: string;
   validation: Validation;
+  fidelity_result: FidelityResult;
   meta: GenerateMeta;
 };
 

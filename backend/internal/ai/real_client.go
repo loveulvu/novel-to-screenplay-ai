@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"novel-to-screenplay-ai/internal/analysis"
+	"novel-to-screenplay-ai/internal/fidelity"
 	"novel-to-screenplay-ai/internal/novel"
 	"novel-to-screenplay-ai/internal/screenplay"
 	"novel-to-screenplay-ai/internal/story"
@@ -88,6 +89,28 @@ func (c *RealClient) GenerateScreenplay(ctx context.Context, bible story.StoryBi
 		return result, fmt.Errorf("generate screenplay: validation failed after repair: %s", strings.Join(repairedValidation.Errors, "; "))
 	}
 
+	return repaired, nil
+}
+
+func (c *RealClient) CheckFidelity(ctx context.Context, current screenplay.Screenplay, bible story.StoryBible, analyses []analysis.ChapterAnalysis) (fidelity.FidelityResult, error) {
+	var result fidelity.FidelityResult
+	if err := c.callJSON(ctx, "fidelity check", BuildFidelityCheckPrompt(current, bible, analyses), fidelityResultSchemaDescription(), &result); err != nil {
+		return result, err
+	}
+	if result.Issues == nil {
+		result.Issues = []fidelity.FidelityIssue{}
+	}
+	if len(result.Issues) == 0 {
+		result.Passed = true
+	}
+	return result, nil
+}
+
+func (c *RealClient) RepairFidelity(ctx context.Context, current screenplay.Screenplay, bible story.StoryBible, analyses []analysis.ChapterAnalysis, result fidelity.FidelityResult) (screenplay.Screenplay, error) {
+	var repaired screenplay.Screenplay
+	if err := c.callJSON(ctx, "fidelity repair", BuildFidelityRepairPrompt(current, bible, analyses, result), screenplaySchemaDescription(), &repaired); err != nil {
+		return current, err
+	}
 	return repaired, nil
 }
 

@@ -232,14 +232,16 @@ h4 {
   gap: 12px;
 }
 
-.metric-grid div {
+.metric-grid div,
+.quality-grid div {
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 12px;
   background: #fbfcfb;
 }
 
-.metric-grid span {
+.metric-grid span,
+.quality-grid span {
   display: block;
   margin-bottom: 6px;
   color: var(--muted);
@@ -249,6 +251,16 @@ h4 {
 .metric-grid strong {
   font-size: 22px;
   overflow-wrap: anywhere;
+}
+
+.quality-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quality-grid strong {
+  font-size: 18px;
 }
 
 .mode-badge {
@@ -349,6 +361,11 @@ h4 {
   font-weight: 700;
 }
 
+.validation-bad {
+  color: var(--danger);
+  font-weight: 700;
+}
+
 .validation-errors {
   margin: 8px 0 0;
   padding-left: 18px;
@@ -397,7 +414,8 @@ h4 {
     text-align: left;
   }
 
-  .metric-grid {
+  .metric-grid,
+  .quality-grid {
     grid-template-columns: 1fr;
   }
 

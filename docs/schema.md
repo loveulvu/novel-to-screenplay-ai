@@ -13,6 +13,7 @@
 - 同一场景的 `source_chapter` 必须匹配事实来源，不能把后续章节的宣布结果提前放入前一章场景。
 - `actions` 应写成完整可拍摄动作句，而不是“若有所思”“目光微凝”这类短碎片列表。
 - `source_chapters.title` 保留 parser 识别出的原始章节标题，方便作者回溯来源章节并核对改编内容。
+- `fidelity_result` 用于展示事实一致性检查结果，帮助用户发现剧本中可能存在的 unsupported claims。
 
 ## 顶层字段
 
@@ -74,7 +75,21 @@ scenes:
 
 - `characters` 使用 `CharacterMention`，记录角色在本章的功能、性格特征和状态变化。
 - `scene_candidates` 使用 `SceneCandidate`，记录地点、时间、戏剧目的、参与角色和关键事件。
+- `factual_anchors` 记录本章必须保留的硬事实，例如关键数字、步数、资质等级、人物关系、地点、事件结果、专有名词和关键短句。
 - `summary`、`key_events`、`conflicts` 用于后续合并 Story Bible，避免直接从原文跳到剧本。
+
+## FidelityResult 质量检查
+
+`fidelity_result` 是事实一致性检查结果，不代替 Schema Validate。它重点检查关键数字、资质等级、人物关系、地点、道具、观察方式、身体反应、章节归属、actions 和 dialogues 是否出现无依据补写。
+
+```json
+{
+  "passed": true,
+  "issues": []
+}
+```
+
+如果存在风险，`issues` 会包含 `field`、`severity`、`problem` 和 `suggestion`，前端会作为 Quality Report 展示。
 
 ## 为什么使用 title、source_chapters、characters、scenes
 

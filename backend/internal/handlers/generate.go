@@ -5,6 +5,7 @@ import (
 
 	"novel-to-screenplay-ai/internal/ai"
 	"novel-to-screenplay-ai/internal/analysis"
+	"novel-to-screenplay-ai/internal/fidelity"
 	"novel-to-screenplay-ai/internal/novel"
 	"novel-to-screenplay-ai/internal/screenplay"
 	"novel-to-screenplay-ai/internal/story"
@@ -23,6 +24,7 @@ type generateResponse struct {
 	ScreenplayJSON   screenplay.Screenplay       `json:"screenplay_json"`
 	ScreenplayYAML   string                      `json:"screenplay_yaml"`
 	ValidationResult screenplay.ValidationResult `json:"validation"`
+	FidelityResult   fidelity.FidelityResult     `json:"fidelity_result"`
 	Meta             generateMeta                `json:"meta"`
 }
 
@@ -59,6 +61,7 @@ func Generate(c *gin.Context) {
 	analyzer := analysis.NewAnalyzer(client)
 	merger := story.NewMerger(client)
 	generator := screenplay.NewGenerator(client)
+	fidelityChecker := fidelity.NewChecker(client)
 
 	ctx := c.Request.Context()
 	chapterAnalyses, err := analyzer.AnalyzeChapters(ctx, chapters)
@@ -86,6 +89,15 @@ func Generate(c *gin.Context) {
 	}
 	applySourceChaptersFromAnalyses(&screenplayJSON, chapterAnalyses)
 
+	screenplayJSON, fidelityResult, err := fidelityChecker.CheckAndRepairOnce(ctx, screenplayJSON, storyBible, chapterAnalyses)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	applySourceChaptersFromAnalyses(&screenplayJSON, chapterAnalyses)
+
 	validation := screenplay.Validate(screenplayJSON)
 	screenplayYAML := screenplay.ToYAML(screenplayJSON)
 
@@ -96,6 +108,7 @@ func Generate(c *gin.Context) {
 		ScreenplayJSON:   screenplayJSON,
 		ScreenplayYAML:   screenplayYAML,
 		ValidationResult: validation,
+		FidelityResult:   fidelityResult,
 		Meta: generateMeta{
 			AIProvider: runtimeStatus.AIProvider,
 			AIModel:    runtimeStatus.AIModel,

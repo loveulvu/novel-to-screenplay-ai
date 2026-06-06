@@ -46,6 +46,7 @@ type ChapterAnalysis struct {
 	KeyEvents       []string           `json:"key_events"`
 	Conflicts       []string           `json:"conflicts"`
 	SceneCandidates []SceneCandidate   `json:"scene_candidates"`
+	FactualAnchors  []string           `json:"factual_anchors"`
 }
 
 func unmarshalStringList(data json.RawMessage) []string {

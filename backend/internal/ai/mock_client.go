@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"novel-to-screenplay-ai/internal/analysis"
+	"novel-to-screenplay-ai/internal/fidelity"
 	"novel-to-screenplay-ai/internal/novel"
 	"novel-to-screenplay-ai/internal/screenplay"
 	"novel-to-screenplay-ai/internal/story"
@@ -60,6 +61,11 @@ func (m MockClient) AnalyzeChapter(ctx context.Context, chapter novel.Chapter) (
 		},
 		Conflicts: []string{
 			"林澈想查清父亲失踪真相，顾衡试图封存旧剧院的记忆实验。",
+		},
+		FactualAnchors: []string{
+			fmt.Sprintf("第%d章标题为%s", chapter.Number, chapter.Title),
+			"林澈、许岚、顾衡是示例故事中的核心人物。",
+			"铜钥匙、旧剧院和父亲失踪线索是示例故事的关键事实。",
 		},
 		SceneCandidates: []analysis.SceneCandidate{
 			{
@@ -195,4 +201,20 @@ func (m MockClient) GenerateScreenplay(ctx context.Context, bible story.StoryBib
 		Characters:     characters,
 		Scenes:         scenes,
 	}, nil
+}
+
+func (m MockClient) CheckFidelity(ctx context.Context, current screenplay.Screenplay, bible story.StoryBible, analyses []analysis.ChapterAnalysis) (fidelity.FidelityResult, error) {
+	_ = ctx
+	_ = current
+	_ = bible
+	_ = analyses
+	return fidelity.FidelityResult{Passed: true, Issues: []fidelity.FidelityIssue{}}, nil
+}
+
+func (m MockClient) RepairFidelity(ctx context.Context, current screenplay.Screenplay, bible story.StoryBible, analyses []analysis.ChapterAnalysis, result fidelity.FidelityResult) (screenplay.Screenplay, error) {
+	_ = ctx
+	_ = bible
+	_ = analyses
+	_ = result
+	return current, nil
 }

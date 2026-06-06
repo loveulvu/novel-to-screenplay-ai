@@ -76,7 +76,7 @@ export default function Home() {
           <div className="result-column">
             <ResultSections result={result} />
             <YamlPreview yaml={result?.screenplay_yaml ?? ""} />
-            <ValidationResult validation={result?.validation ?? null} />
+            <ValidationResult validation={result?.validation ?? null} fidelityResult={result?.fidelity_result ?? null} />
           </div>
         </div>
       </section>
