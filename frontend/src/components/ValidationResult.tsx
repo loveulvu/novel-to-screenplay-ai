@@ -4,9 +4,10 @@ import type { FidelityResult, Validation } from "@/lib/api";
 type ValidationResultProps = {
   validation: Validation | null;
   fidelityResult: FidelityResult | null;
+  embedded?: boolean;
 };
 
-export function ValidationResult({ validation, fidelityResult }: ValidationResultProps) {
+export function ValidationResult({ validation, fidelityResult, embedded = false }: ValidationResultProps) {
   if (!validation) {
     return (
       <Card className="tool-card">
@@ -19,8 +20,8 @@ export function ValidationResult({ validation, fidelityResult }: ValidationResul
     );
   }
 
-  return (
-    <Card className="tool-card">
+  const content = (
+    <>
       <div className="card-heading">
         <span className="section-kicker">QUALITY</span>
         <h2>质量检查</h2>
@@ -62,8 +63,10 @@ export function ValidationResult({ validation, fidelityResult }: ValidationResul
       ) : (
         <p className="quality-clear">未发现明显事实一致性问题。</p>
       )}
-    </Card>
+    </>
   );
+
+  return embedded ? content : <Card className="tool-card">{content}</Card>;
 }
 
 function Status({ label, passed, failedText }: { label: string; passed: boolean; failedText: string }) {

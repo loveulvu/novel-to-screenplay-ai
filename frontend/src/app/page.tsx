@@ -4,9 +4,8 @@ import { useState } from "react";
 import { Alert, Card, ConfigProvider, Tag } from "antd";
 import { GeneratePanel } from "@/components/GeneratePanel";
 import { NovelInput } from "@/components/NovelInput";
+import { OutputPanel } from "@/components/OutputPanel";
 import { ResultSections } from "@/components/ResultSections";
-import { ValidationResult } from "@/components/ValidationResult";
-import { YamlPreview } from "@/components/YamlPreview";
 import { generateScreenplay } from "@/lib/api";
 import type { GenerateResponse } from "@/lib/api";
 
@@ -36,9 +35,13 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   async function handleGenerate() {
+    if (!novelText.trim()) {
+      setError("请至少输入 2 个章节或分节。");
+      return;
+    }
+
     setLoading(true);
     setError("");
-    setResult(null);
 
     try {
       setResult(await generateScreenplay(novelText));
@@ -88,42 +91,50 @@ export default function Home() {
             showIcon
             message={error}
             description="确认服务与输入后，可在左侧重新发起生成。"
+            closable
+            onClose={() => setError("")}
           />
-        ) : (
-          <>
-            <div className="workspace-grid">
-              <aside className="control-column">
-                <NovelInput value={novelText} onChange={setNovelText} onUseSample={() => setNovelText(sampleText)} />
-                <GeneratePanel loading={loading} onGenerate={handleGenerate} />
-                <Card className="tool-card workflow-card">
-                  <div className="card-heading">
-                    <span className="section-kicker">WORKFLOW</span>
-                    <h2>从小说到剧本</h2>
-                  </div>
-                  <ol className="workflow-list">
-                    {workflowSteps.map(([number, title, description]) => (
-                      <li key={number}>
-                        <span>{number}</span>
-                        <div>
-                          <strong>{title}</strong>
-                          <p>{description}</p>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </Card>
-              </aside>
+        ) : null}
 
-              <section className="result-column">
-                <ResultSections result={result} overviewOnly />
-                <ValidationResult validation={result?.validation ?? null} fidelityResult={result?.fidelity_result ?? null} />
-                <YamlPreview yaml={result?.screenplay_yaml ?? ""} />
-              </section>
-            </div>
+        <div className="workspace-grid">
+          <aside className="control-column">
+            <NovelInput
+              value={novelText}
+              onChange={(value) => {
+                setNovelText(value);
+                if (error) setError("");
+              }}
+              onUseSample={() => {
+                setNovelText(sampleText);
+                setError("");
+              }}
+            />
+            <GeneratePanel loading={loading} onGenerate={handleGenerate} />
+            <Card className="tool-card workflow-card">
+              <div className="card-heading">
+                <span className="section-kicker">WORKFLOW</span>
+                <h2>从小说到剧本</h2>
+              </div>
+              <ol className="workflow-list">
+                {workflowSteps.map(([number, title, description]) => (
+                  <li key={number}>
+                    <span>{number}</span>
+                    <div>
+                      <strong>{title}</strong>
+                      <p>{description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          </aside>
 
-            {result ? <ResultSections result={result} detailsOnly /> : null}
-          </>
-        )}
+          <section className="result-column">
+            <OutputPanel result={result} loading={loading} />
+          </section>
+        </div>
+
+        {result && !loading ? <ResultSections result={result} detailsOnly /> : null}
       </main>
     </ConfigProvider>
   );

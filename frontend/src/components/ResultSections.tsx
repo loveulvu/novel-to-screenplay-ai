@@ -1,35 +1,21 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { Card, Empty, Tag } from "antd";
+import { useState } from "react";
+import { Card, Segmented, Tag } from "antd";
 import type { ChapterAnalysis, GenerateResponse, StoryBible } from "@/lib/api";
 
 type ResultSectionsProps = {
   result: GenerateResponse | null;
-  overviewOnly?: boolean;
   detailsOnly?: boolean;
 };
 
-export function ResultSections({ result, overviewOnly = false, detailsOnly = false }: ResultSectionsProps) {
-  if (!result) {
-    return (
-      <Card className="tool-card empty-result">
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={
-            <div className="empty-copy">
-              <strong>Waiting for generated result</strong>
-              <span>Submit novel text to generate structured screenplay YAML.</span>
-            </div>
-          }
-        />
-      </Card>
-    );
-  }
+type DetailSection = "Chapter Analysis" | "Factual Anchors" | "Story Bible";
 
-  if (overviewOnly) {
-    return <BasicInfo result={result} />;
-  }
+export function ResultSections({ result, detailsOnly = false }: ResultSectionsProps) {
+  const [section, setSection] = useState<DetailSection>("Chapter Analysis");
 
-  if (detailsOnly) {
+  if (result && detailsOnly) {
     return (
       <section className="detail-area">
         <div className="detail-heading">
@@ -37,14 +23,20 @@ export function ResultSections({ result, overviewOnly = false, detailsOnly = fal
             <span className="section-kicker">DETAILS</span>
             <h2>详细生成结果</h2>
           </div>
-          <p>按章节、事实锚点与全局故事资料分区展示。</p>
+          <Segmented<DetailSection>
+            options={["Chapter Analysis", "Factual Anchors", "Story Bible"]}
+            value={section}
+            onChange={setSection}
+          />
         </div>
-        <div className="detail-grid">
-          <ChapterAnalyses analyses={result.chapter_analyses} />
-          <div className="detail-side">
+        <div className="detail-content">
+          {section === "Chapter Analysis" ? (
+            <ChapterAnalyses analyses={result.chapter_analyses} />
+          ) : section === "Factual Anchors" ? (
             <FactualAnchors analyses={result.chapter_analyses} />
+          ) : (
             <StoryBibleView storyBible={result.story_bible} />
-          </div>
+          )}
         </div>
       </section>
     );
@@ -53,11 +45,11 @@ export function ResultSections({ result, overviewOnly = false, detailsOnly = fal
   return null;
 }
 
-function BasicInfo({ result }: { result: GenerateResponse }) {
+export function OverviewContent({ result }: { result: GenerateResponse }) {
   const provider = result.meta?.ai_provider ?? "unknown";
 
   return (
-    <Card className="tool-card">
+    <>
       <div className="panel-title-row">
         <div>
           <span className="section-kicker">OVERVIEW</span>
@@ -78,7 +70,7 @@ function BasicInfo({ result }: { result: GenerateResponse }) {
           status={result.fidelity_result.passed}
         />
       </div>
-    </Card>
+    </>
   );
 }
 

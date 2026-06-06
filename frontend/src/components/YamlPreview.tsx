@@ -4,9 +4,10 @@ import { Button, Card, message } from "antd";
 
 type YamlPreviewProps = {
   yaml: string;
+  embedded?: boolean;
 };
 
-export function YamlPreview({ yaml }: YamlPreviewProps) {
+export function YamlPreview({ yaml, embedded = false }: YamlPreviewProps) {
   const [messageApi, contextHolder] = message.useMessage();
 
   async function handleCopy() {
@@ -26,8 +27,8 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
     URL.revokeObjectURL(url);
   }
 
-  return (
-    <Card className="tool-card yaml-panel">
+  const content = (
+    <>
       {contextHolder}
       <div className="preview-actions">
         <div>
@@ -40,6 +41,8 @@ export function YamlPreview({ yaml }: YamlPreviewProps) {
         </div>
       </div>
       <pre className="yaml-output"><code>{yaml || "# 生成后将在这里展示结构化剧本 YAML"}</code></pre>
-    </Card>
+    </>
   );
+
+  return embedded ? <div className="yaml-panel">{content}</div> : <Card className="tool-card yaml-panel">{content}</Card>;
 }
