@@ -6,15 +6,16 @@ import (
 )
 
 var (
-	chineseChapterHeadingPattern = regexp.MustCompile(`^\s*第\s*([0-9]+|[一二三四五六七八九十百千万零〇两]+)\s*[章节](?:\s+|[:：]\s*|$)?(.*)$`)
+	chineseChapterHeadingPattern = regexp.MustCompile(`^\s*第\s*([0-9０-９]+|[一二三四五六七八九十百千万零〇两]+)\s*([章节])\s*[:：\-—]?\s*(.*)$`)
 	englishChapterHeadingPattern = regexp.MustCompile(`(?i)^\s*chapter\s+([0-9]+)(?:\s+|[:：]\s*|$)(.*)$`)
-	pageMarkPattern              = regexp.MustCompile(`\s*[\(（]\s*第\s*[0-9]+\s*/\s*[0-9]+\s*页\s*[\)）]\s*$`)
+	pageMarkPattern              = regexp.MustCompile(`\s*[\(（]\s*第\s*[0-9０-９]+\s*[/／]\s*[0-9０-９]+\s*页\s*[\)）]\s*$`)
 )
 
 func ParseChapters(input string) []Chapter {
 	lines := strings.Split(input, "\n")
 	chapters := make([]Chapter, 0)
 	var current *Chapter
+	var currentKey string
 	var body []string
 
 	flush := func() {
@@ -27,9 +28,9 @@ func ParseChapters(input string) []Chapter {
 	}
 
 	for _, line := range lines {
-		title, ok := parseChapterHeading(line)
+		chapterKey, title, ok := parseChapterHeading(line)
 		if ok {
-			if current != nil && title == current.Title {
+			if current != nil && chapterKey == currentKey {
 				continue
 			}
 
@@ -38,6 +39,7 @@ func ParseChapters(input string) []Chapter {
 				Number: len(chapters) + 1,
 				Title:  title,
 			}
+			currentKey = chapterKey
 			continue
 		}
 
@@ -51,38 +53,40 @@ func ParseChapters(input string) []Chapter {
 	return chapters
 }
 
-func parseChapterHeading(line string) (string, bool) {
-	if title, ok := parseChineseChapterHeading(line); ok {
-		return title, true
+func parseChapterHeading(line string) (string, string, bool) {
+	if chapterKey, title, ok := parseChineseChapterHeading(line); ok {
+		return chapterKey, title, true
 	}
 	return parseEnglishChapterHeading(line)
 }
 
-func parseChineseChapterHeading(line string) (string, bool) {
+func parseChineseChapterHeading(line string) (string, string, bool) {
 	cleanedLine := normalizeHeadingLine(line)
 	matches := chineseChapterHeadingPattern.FindStringSubmatch(cleanedLine)
 	if matches == nil {
-		return "", false
+		return "", "", false
 	}
 
-	title := cleanupHeadingTitle(matches[2])
+	ordinal := normalizeFullWidthDigits(matches[1])
+	kind := matches[2]
+	title := cleanupHeadingTitle(matches[3])
 	if title == "" {
 		title = cleanupHeadingTitle(matches[0])
 	}
-	return title, true
+	return "cn:" + ordinal + ":" + kind + ":" + title, title, true
 }
 
-func parseEnglishChapterHeading(line string) (string, bool) {
-	matches := englishChapterHeadingPattern.FindStringSubmatch(strings.TrimSpace(line))
+func parseEnglishChapterHeading(line string) (string, string, bool) {
+	matches := englishChapterHeadingPattern.FindStringSubmatch(normalizeHeadingLine(line))
 	if matches == nil {
-		return "", false
+		return "", "", false
 	}
 
 	title := cleanupHeadingTitle(matches[2])
 	if title == "" {
 		title = cleanupHeadingTitle(matches[0])
 	}
-	return title, true
+	return "en:" + matches[1] + ":chapter:" + title, title, true
 }
 
 func normalizeHeadingLine(line string) string {
@@ -93,8 +97,25 @@ func normalizeHeadingLine(line string) string {
 }
 
 func cleanupHeadingTitle(title string) string {
+	title = normalizeHeadingLine(title)
 	title = pageMarkPattern.ReplaceAllString(title, "")
 	title = strings.TrimSpace(title)
 	title = strings.Trim(title, "-—:：")
 	return strings.TrimSpace(title)
+}
+
+func normalizeFullWidthDigits(value string) string {
+	replacer := strings.NewReplacer(
+		"０", "0",
+		"１", "1",
+		"２", "2",
+		"３", "3",
+		"４", "4",
+		"５", "5",
+		"６", "6",
+		"７", "7",
+		"８", "8",
+		"９", "9",
+	)
+	return replacer.Replace(value)
 }

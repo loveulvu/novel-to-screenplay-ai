@@ -1,8 +1,11 @@
 package novel
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-func TestParseChaptersStandardChineseHeadings(t *testing.T) {
+func TestParseChineseChapters(t *testing.T) {
 	input := `第1章 开端
 这里是开端正文
 第二章 发展
@@ -56,7 +59,7 @@ func TestParseChaptersChineseSectionHeadings(t *testing.T) {
 	assertChapter(t, chapters[2], 3, "对峙", "这里是对峙正文")
 }
 
-func TestParseChaptersEnglishHeadings(t *testing.T) {
+func TestParseEnglishChapters(t *testing.T) {
 	input := `Chapter 1 Beginning
 Chapter one body
 chapter 2 Middle
@@ -136,6 +139,82 @@ func TestParseChaptersMergesPaginatedSameSection(t *testing.T) {
 	assertChapter(t, chapters[0], 1, "雨夜来信", "第一页正文\n第二页正文")
 }
 
+func TestParsePaginatedSections(t *testing.T) {
+	input := `第四节：古月方源！ (第1/2页)
+正文A
+
+第四节：古月方源！ （第２／２页）
+正文B
+
+第五节：人祖三蛊，希望开窍 (第1/2页)
+正文C
+
+第五节：人祖三蛊，希望开窍 （第２／２页）
+正文D
+
+第六节：未来的路，会很精彩 (第1/2页)
+正文E
+
+第六节：未来的路，会很精彩 （第２／２页）
+正文F`
+
+	chapters := ParseChapters(input)
+
+	if len(chapters) != 3 {
+		t.Fatalf("expected 3 chapters, got %d", len(chapters))
+	}
+	assertChapterContains(t, chapters[0], 1, "古月方源！", "正文A", "正文B")
+	assertChapterContains(t, chapters[1], 2, "人祖三蛊，希望开窍", "正文C", "正文D")
+	assertChapterContains(t, chapters[2], 3, "未来的路，会很精彩", "正文E", "正文F")
+}
+
+func TestDoNotTreatStepsAsHeadings(t *testing.T) {
+	input := `第1章 开端
+方源走到第二十七步。
+第二十七步
+第二章 发展
+古月赤城走到三十六步。
+三十六步
+第三章 结果
+古月方正走到四十三步。
+四十三步`
+
+	chapters := ParseChapters(input)
+
+	if len(chapters) != 3 {
+		t.Fatalf("expected 3 chapters, got %d", len(chapters))
+	}
+	assertChapterContains(t, chapters[0], 1, "开端", "第二十七步")
+	assertChapterContains(t, chapters[1], 2, "发展", "三十六步")
+	assertChapterContains(t, chapters[2], 3, "结果", "四十三步")
+}
+
+func TestParseChapterHeadingStableKeys(t *testing.T) {
+	tests := []struct {
+		line  string
+		key   string
+		title string
+	}{
+		{"第四节：古月方源！ (第1/2页)", "cn:四:节:古月方源！", "古月方源！"},
+		{"第四节：古月方源！ （第２／２页）", "cn:四:节:古月方源！", "古月方源！"},
+		{"第五节：人祖三蛊，希望开窍 (第1/2页)", "cn:五:节:人祖三蛊，希望开窍", "人祖三蛊，希望开窍"},
+		{"Chapter 1: Beginning", "en:1:chapter:Beginning", "Beginning"},
+	}
+
+	for _, test := range tests {
+		key, title, ok := parseChapterHeading(test.line)
+		if !ok {
+			t.Fatalf("expected heading %q to parse", test.line)
+		}
+		if key != test.key {
+			t.Fatalf("expected key %q, got %q", test.key, key)
+		}
+		if title != test.title {
+			t.Fatalf("expected title %q, got %q", test.title, title)
+		}
+	}
+}
+
 func assertChapter(t *testing.T, chapter Chapter, number int, title string, text string) {
 	t.Helper()
 
@@ -147,5 +226,21 @@ func assertChapter(t *testing.T, chapter Chapter, number int, title string, text
 	}
 	if chapter.Text != text {
 		t.Fatalf("expected chapter text %q, got %q", text, chapter.Text)
+	}
+}
+
+func assertChapterContains(t *testing.T, chapter Chapter, number int, title string, values ...string) {
+	t.Helper()
+
+	if chapter.Number != number {
+		t.Fatalf("expected chapter number %d, got %d", number, chapter.Number)
+	}
+	if chapter.Title != title {
+		t.Fatalf("expected chapter title %q, got %q", title, chapter.Title)
+	}
+	for _, value := range values {
+		if !strings.Contains(chapter.Text, value) {
+			t.Fatalf("expected chapter text %q to contain %q", chapter.Text, value)
+		}
 	}
 }
