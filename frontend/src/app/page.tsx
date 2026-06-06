@@ -9,22 +9,23 @@ import { YamlPreview } from "@/components/YamlPreview";
 import { generateScreenplay } from "@/lib/api";
 import type { GenerateResponse } from "@/lib/api";
 
-const sampleText = `第1章：开端
-林舟在雨夜进入咖啡馆，遇见许晚。许晚递给他一封没有署名的信，信中提到一座废弃剧院。林舟认出信纸上的暗纹，和父亲失踪前留下的笔记完全一致。
+const sampleText = `第1章 雨夜钥匙
+林澈在雨夜回到老街。巷口的邮筒早已停用，却在这天晚上吐出一封没有署名的信。
+信封里只有一把铜钥匙和半张旧剧票。剧票背面写着父亲熟悉的字迹：海棠剧院，午夜之后。
 
-第二章：追踪
-林舟和许晚来到废弃剧院，发现舞台下方藏着一间旧档案室。档案里记录着林舟父亲多年前调查过的失踪案件，也提到一个反复出现的名字：顾衡。
+第二章 旧剧院
+许岚不放心林澈独自前往，带着手电陪他走进废弃的海棠剧院。
+他们在舞台下方找到一台仍在运转的旧时钟，齿轮之间夹着另一半剧票。
 
-第三章：对峙
-顾衡出现在剧院，试图夺走档案。他警告林舟继续追查只会害了许晚。林舟必须决定是保护许晚离开，还是继续追查父亲失踪的真相。`;
+Chapter 3 舞台对峙
+顾衡在灯光亮起时出现，要求林澈交出铜钥匙。
+林澈握紧钥匙，决定启动时钟，查清父亲消失的真相。`;
 
 const workflowSteps = [
-  ["01", "Novel Text", "解析多章节长文本"],
-  ["02", "Chapter Analysis", "逐章结构化分析"],
-  ["03", "Story Bible", "合并全局故事资料"],
-  ["04", "Factual Anchors", "保留关键事实锚点"],
-  ["05", "Fidelity Check", "检查并修复事实风险"],
-  ["06", "YAML Screenplay", "校验并导出结构化剧本"]
+  ["01", "章节分析", "逐章提取人物、事件与场景"],
+  ["02", "故事合并", "构建统一的 Story Bible"],
+  ["03", "剧本生成", "生成结构化 YAML 剧本"],
+  ["04", "质量检查", "校验 Schema 与事实一致性"]
 ];
 
 export default function Home() {
@@ -39,10 +40,14 @@ export default function Home() {
     setResult(null);
 
     try {
-      const data = await generateScreenplay(novelText);
-      setResult(data);
+      setResult(await generateScreenplay(novelText));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "生成失败，请稍后重试");
+      const message = err instanceof Error ? err.message : "";
+      setError(
+        message.includes("at least 3 chapters are required")
+          ? "请至少输入 3 个章节或分节。"
+          : "生成失败，请检查后端服务、AI 配置或输入章节格式。"
+      );
     } finally {
       setLoading(false);
     }
@@ -50,40 +55,59 @@ export default function Home() {
 
   return (
     <main className="page-shell">
-      <section className="workspace">
-        <div className="header">
-          <div>
-            <p className="eyebrow">七牛云 × XEngineer 暑期实训营</p>
-            <h1>AI 小说转剧本工具</h1>
-            <p className="subtitle">展示从长文本章节分析到 Story Bible，再到结构化 YAML 剧本的完整链路。</p>
-          </div>
-          <GeneratePanel loading={loading} onGenerate={handleGenerate} />
+      <header className="site-header">
+        <div>
+          <h1>Novel to Screenplay AI</h1>
+          <p>多章节小说 → Story Bible → YAML 剧本</p>
         </div>
+        <div className="status-tags" aria-label="系统能力">
+          <span><i className="status-dot" />Real LLM</span>
+          <span>YAML Schema</span>
+          <span>Fidelity Check</span>
+        </div>
+      </header>
 
-        <section className="panel workflow-panel">
-          <h2>长文本处理流水线</h2>
-          <div className="workflow-steps">
-            {workflowSteps.map((step) => (
-              <div className="workflow-step" key={step[0]}>
-                <span>{step[0]}</span>
-                <strong>{step[1]}</strong>
-                <small>{step[2]}</small>
-              </div>
-            ))}
-          </div>
+      {error ? (
+        <section className="error-card" role="alert">
+          <span>生成失败</span>
+          <h2>{error}</h2>
+          <p>确认服务与输入后，可在左侧重新发起生成。</p>
         </section>
+      ) : (
+        <>
+          <div className="workspace-grid">
+            <aside className="control-column">
+              <NovelInput value={novelText} onChange={setNovelText} onUseSample={() => setNovelText(sampleText)} />
+              <GeneratePanel loading={loading} onGenerate={handleGenerate} />
+              <section className="workflow-card">
+                <div className="card-heading">
+                  <span className="section-kicker">WORKFLOW</span>
+                  <h2>从小说到剧本</h2>
+                </div>
+                <ol className="workflow-list">
+                  {workflowSteps.map(([number, title, description]) => (
+                    <li key={number}>
+                      <span>{number}</span>
+                      <div>
+                        <strong>{title}</strong>
+                        <p>{description}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            </aside>
 
-        {error ? <div className="error-box">{error}</div> : null}
-
-        <div className="layout-grid">
-          <NovelInput value={novelText} onChange={setNovelText} onUseSample={() => setNovelText(sampleText)} />
-          <div className="result-column">
-            <ResultSections result={result} />
-            <ValidationResult validation={result?.validation ?? null} fidelityResult={result?.fidelity_result ?? null} />
-            <YamlPreview yaml={result?.screenplay_yaml ?? ""} />
+            <section className="result-column">
+              <ResultSections result={result} overviewOnly />
+              <ValidationResult validation={result?.validation ?? null} fidelityResult={result?.fidelity_result ?? null} />
+              <YamlPreview yaml={result?.screenplay_yaml ?? ""} />
+            </section>
           </div>
-        </div>
-      </section>
+
+          {result ? <ResultSections result={result} detailsOnly /> : null}
+        </>
+      )}
     </main>
   );
 }

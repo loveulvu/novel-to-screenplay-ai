@@ -127,16 +127,16 @@ curl http://localhost:8080/api/health
 
 ## Demo 说明
 
-演示时建议展示：
+当前前端采用黑白灰极简双栏工具界面：左侧用于输入多章节小说和发起生成，右侧集中展示生成概览、质量检查与可滚动的 YAML 预览；生成成功后继续分区展示详细结果。
 
-- 输入三章小说
-- 章节分析
+前端可以展示：
+
+- Chapter Analysis 章节分析
 - Factual Anchors 事实锚点
 - Story Bible
-- YAML 剧本
-- Schema 校验结果
-- Fidelity Check 结果
-- 复制 / 下载 YAML
+- Fidelity Check 事实一致性检查
+- YAML Screenplay 剧本预览、复制与下载
+- Schema Validation 结构校验
 
 示例输入位于 `examples/input_novel.txt`，中间态示例位于 `examples/chapter_analysis.json` 和 `examples/story_bible.json`，最终输出示例位于 `examples/output_screenplay.yaml`。
 
