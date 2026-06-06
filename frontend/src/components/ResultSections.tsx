@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Card, Empty, Tag } from "antd";
 import type { ChapterAnalysis, GenerateResponse, StoryBible } from "@/lib/api";
 
 type ResultSectionsProps = {
@@ -10,11 +11,17 @@ type ResultSectionsProps = {
 export function ResultSections({ result, overviewOnly = false, detailsOnly = false }: ResultSectionsProps) {
   if (!result) {
     return (
-      <section className="panel empty-result">
-        <div className="empty-icon">YAML</div>
-        <h2>等待生成结果</h2>
-        <p>提交小说后，这里会先展示基础信息与质量状态。</p>
-      </section>
+      <Card className="tool-card empty-result">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            <div className="empty-copy">
+              <strong>Waiting for generated result</strong>
+              <span>Submit novel text to generate structured screenplay YAML.</span>
+            </div>
+          }
+        />
+      </Card>
     );
   }
 
@@ -50,15 +57,15 @@ function BasicInfo({ result }: { result: GenerateResponse }) {
   const provider = result.meta?.ai_provider ?? "unknown";
 
   return (
-    <section className="panel">
+    <Card className="tool-card">
       <div className="panel-title-row">
         <div>
           <span className="section-kicker">OVERVIEW</span>
           <h2>基础信息</h2>
         </div>
-        <span className={provider === "real" ? "mode-badge real-mode" : "mode-badge mock-mode"}>
+        <Tag className={provider === "real" ? "mode-badge real-mode" : "mode-badge mock-mode"}>
           {provider === "real" ? "Real LLM" : provider === "mock" ? "Mock Mode" : "Unknown"}
-        </span>
+        </Tag>
       </div>
       <div className="metric-grid">
         <Metric label="AI provider" value={provider} />
@@ -71,7 +78,7 @@ function BasicInfo({ result }: { result: GenerateResponse }) {
           status={result.fidelity_result.passed}
         />
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -86,7 +93,7 @@ function Metric({ label, value, status }: { label: string; value: string | numbe
 
 function ChapterAnalyses({ analyses }: { analyses: ChapterAnalysis[] }) {
   return (
-    <section className="panel">
+    <Card className="tool-card">
       <div className="card-heading">
         <span className="section-kicker">CHAPTER ANALYSIS</span>
         <h2>章节分析</h2>
@@ -141,13 +148,13 @@ function ChapterAnalyses({ analyses }: { analyses: ChapterAnalysis[] }) {
           </details>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }
 
 function FactualAnchors({ analyses }: { analyses: ChapterAnalysis[] }) {
   return (
-    <section className="panel anchors-panel">
+    <Card className="tool-card anchors-panel">
       <div className="card-heading">
         <span className="section-kicker">FACTUAL ANCHORS</span>
         <h2>事实锚点</h2>
@@ -165,13 +172,13 @@ function FactualAnchors({ analyses }: { analyses: ChapterAnalysis[] }) {
           </article>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }
 
 function StoryBibleView({ storyBible }: { storyBible: StoryBible }) {
   return (
-    <section className="panel">
+    <Card className="tool-card">
       <div className="card-heading">
         <span className="section-kicker">STORY BIBLE</span>
         <h2>Story Bible</h2>
@@ -205,7 +212,7 @@ function StoryBibleView({ storyBible }: { storyBible: StoryBible }) {
           ))}
         </div>
       </div>
-    </section>
+    </Card>
   );
 }
 

@@ -1,3 +1,4 @@
+import { Alert, Card } from "antd";
 import type { FidelityResult, Validation } from "@/lib/api";
 
 type ValidationResultProps = {
@@ -8,18 +9,18 @@ type ValidationResultProps = {
 export function ValidationResult({ validation, fidelityResult }: ValidationResultProps) {
   if (!validation) {
     return (
-      <section className="panel">
+      <Card className="tool-card">
         <div className="card-heading">
           <span className="section-kicker">QUALITY</span>
           <h2>质量检查</h2>
         </div>
         <p className="validation-waiting">生成后将检查 Schema 结构和事实一致性。</p>
-      </section>
+      </Card>
     );
   }
 
   return (
-    <section className="panel">
+    <Card className="tool-card">
       <div className="card-heading">
         <span className="section-kicker">QUALITY</span>
         <h2>质量检查</h2>
@@ -33,7 +34,12 @@ export function ValidationResult({ validation, fidelityResult }: ValidationResul
       {!validation.passed ? (
         <div className="field-block">
           <h4>Schema 问题</h4>
-          <ul className="validation-errors">{validation.errors.map((error) => <li key={error}>{error}</li>)}</ul>
+          <Alert
+            type="error"
+            showIcon
+            message="Schema 校验失败"
+            description={<ul className="validation-errors">{validation.errors.map((error) => <li key={error}>{error}</li>)}</ul>}
+          />
         </div>
       ) : null}
 
@@ -56,7 +62,7 @@ export function ValidationResult({ validation, fidelityResult }: ValidationResul
       ) : (
         <p className="quality-clear">未发现明显事实一致性问题。</p>
       )}
-    </section>
+    </Card>
   );
 }
 

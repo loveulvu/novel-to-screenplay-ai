@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Alert, Card, ConfigProvider, Tag } from "antd";
 import { GeneratePanel } from "@/components/GeneratePanel";
 import { NovelInput } from "@/components/NovelInput";
 import { ResultSections } from "@/components/ResultSections";
@@ -54,60 +55,76 @@ export default function Home() {
   }
 
   return (
-    <main className="page-shell">
-      <header className="site-header">
-        <div>
-          <h1>Novel to Screenplay AI</h1>
-          <p>多章节小说 → Story Bible → YAML 剧本</p>
-        </div>
-        <div className="status-tags" aria-label="系统能力">
-          <span><i className="status-dot" />Real LLM</span>
-          <span>YAML Schema</span>
-          <span>Fidelity Check</span>
-        </div>
-      </header>
-
-      {error ? (
-        <section className="error-card" role="alert">
-          <span>生成失败</span>
-          <h2>{error}</h2>
-          <p>确认服务与输入后，可在左侧重新发起生成。</p>
-        </section>
-      ) : (
-        <>
-          <div className="workspace-grid">
-            <aside className="control-column">
-              <NovelInput value={novelText} onChange={setNovelText} onUseSample={() => setNovelText(sampleText)} />
-              <GeneratePanel loading={loading} onGenerate={handleGenerate} />
-              <section className="workflow-card">
-                <div className="card-heading">
-                  <span className="section-kicker">WORKFLOW</span>
-                  <h2>从小说到剧本</h2>
-                </div>
-                <ol className="workflow-list">
-                  {workflowSteps.map(([number, title, description]) => (
-                    <li key={number}>
-                      <span>{number}</span>
-                      <div>
-                        <strong>{title}</strong>
-                        <p>{description}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </section>
-            </aside>
-
-            <section className="result-column">
-              <ResultSections result={result} overviewOnly />
-              <ValidationResult validation={result?.validation ?? null} fidelityResult={result?.fidelity_result ?? null} />
-              <YamlPreview yaml={result?.screenplay_yaml ?? ""} />
-            </section>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#1f1f1f",
+          colorInfo: "#1f1f1f",
+          colorBorder: "#e5e5e5",
+          colorText: "#171717",
+          colorTextSecondary: "#737373",
+          borderRadius: 10,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif'
+        }
+      }}
+    >
+      <main className="page-shell">
+        <header className="site-header">
+          <div>
+            <h1>Novel to Screenplay AI</h1>
+            <p>多章节小说 → Story Bible → YAML 剧本</p>
           </div>
+          <div className="status-tags" aria-label="系统能力">
+            <Tag><i className="status-dot" />Real LLM</Tag>
+            <Tag>YAML Schema</Tag>
+            <Tag>Fidelity Check</Tag>
+          </div>
+        </header>
 
-          {result ? <ResultSections result={result} detailsOnly /> : null}
-        </>
-      )}
-    </main>
+        {error ? (
+          <Alert
+            className="error-card"
+            type="error"
+            showIcon
+            message={error}
+            description="确认服务与输入后，可在左侧重新发起生成。"
+          />
+        ) : (
+          <>
+            <div className="workspace-grid">
+              <aside className="control-column">
+                <NovelInput value={novelText} onChange={setNovelText} onUseSample={() => setNovelText(sampleText)} />
+                <GeneratePanel loading={loading} onGenerate={handleGenerate} />
+                <Card className="tool-card workflow-card">
+                  <div className="card-heading">
+                    <span className="section-kicker">WORKFLOW</span>
+                    <h2>从小说到剧本</h2>
+                  </div>
+                  <ol className="workflow-list">
+                    {workflowSteps.map(([number, title, description]) => (
+                      <li key={number}>
+                        <span>{number}</span>
+                        <div>
+                          <strong>{title}</strong>
+                          <p>{description}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </Card>
+              </aside>
+
+              <section className="result-column">
+                <ResultSections result={result} overviewOnly />
+                <ValidationResult validation={result?.validation ?? null} fidelityResult={result?.fidelity_result ?? null} />
+                <YamlPreview yaml={result?.screenplay_yaml ?? ""} />
+              </section>
+            </div>
+
+            {result ? <ResultSections result={result} detailsOnly /> : null}
+          </>
+        )}
+      </main>
+    </ConfigProvider>
   );
 }
