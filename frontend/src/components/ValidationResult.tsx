@@ -18,6 +18,7 @@ export function ValidationResult({ validation, fidelityResult }: ValidationResul
   return (
     <section className="panel">
       <h2>质量检查</h2>
+      <p className="quality-description">Schema Validate 检查结构完整性，Fidelity Check 检查内容是否忠实于原文事实。</p>
       <div className="quality-grid">
         <div>
           <span>Schema 校验</span>
@@ -35,7 +36,7 @@ export function ValidationResult({ validation, fidelityResult }: ValidationResul
 
       {!validation.passed ? (
         <div className="field-block">
-          <h4>Schema issues</h4>
+          <h4>Schema 问题</h4>
           <ul className="validation-errors">
             {validation.errors.map((error) => (
               <li key={error}>{error}</li>
@@ -46,15 +47,19 @@ export function ValidationResult({ validation, fidelityResult }: ValidationResul
 
       {fidelityResult && fidelityResult.issues.length > 0 ? (
         <div className="field-block">
-          <h4>Fidelity issues</h4>
-          <ul className="validation-errors">
+          <h4>事实一致性风险</h4>
+          <div className="issue-list">
             {fidelityResult.issues.map((issue) => (
-              <li key={`${issue.field}-${issue.problem}`}>
-                <strong>{issue.severity}</strong> / {issue.field}：{issue.problem}
-                {issue.suggestion ? ` 建议：${issue.suggestion}` : ""}
-              </li>
+              <article className="issue-item" key={`${issue.field}-${issue.problem}`}>
+                <div className="issue-heading">
+                  <strong className={`severity severity-${issue.severity}`}>{issue.severity}</strong>
+                  <code>{issue.field}</code>
+                </div>
+                <p>{issue.problem}</p>
+                {issue.suggestion ? <small>建议：{issue.suggestion}</small> : null}
+              </article>
             ))}
-          </ul>
+          </div>
         </div>
       ) : null}
     </section>

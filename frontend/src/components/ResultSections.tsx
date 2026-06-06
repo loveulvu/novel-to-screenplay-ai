@@ -19,6 +19,7 @@ export function ResultSections({ result }: ResultSectionsProps) {
     <>
       <BasicInfo result={result} />
       <ChapterAnalyses analyses={result.chapter_analyses} />
+      <FactualAnchors analyses={result.chapter_analyses} />
       <StoryBibleView storyBible={result.story_bible} />
     </>
   );
@@ -80,8 +81,6 @@ function ChapterAnalyses({ analyses }: { analyses: ChapterAnalysis[] }) {
             <FieldList title="地点" items={chapter.locations} />
             <FieldList title="关键事件" items={chapter.key_events} />
             <FieldList title="冲突" items={chapter.conflicts} />
-            <FieldList title="事实锚点" items={chapter.factual_anchors} />
-
             <div className="field-block">
               <h4>候选场景</h4>
               <div className="mini-grid">
@@ -96,6 +95,38 @@ function ChapterAnalyses({ analyses }: { analyses: ChapterAnalysis[] }) {
                 ))}
               </div>
             </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FactualAnchors({ analyses }: { analyses: ChapterAnalysis[] }) {
+  return (
+    <section className="panel anchors-panel">
+      <div className="section-intro">
+        <div>
+          <h2>事实锚点</h2>
+          <p>记录每章必须保留的关键事实，用于约束最终剧本并支撑 Fidelity Check。</p>
+        </div>
+        <span className="section-tag">Factual Anchors</span>
+      </div>
+      <div className="anchor-grid">
+        {analyses.map((chapter) => (
+          <article className="anchor-group" key={`${chapter.chapter_number}-${chapter.chapter_title}-anchors`}>
+            <h3>
+              第 {chapter.chapter_number} 章：{chapter.chapter_title}
+            </h3>
+            {chapter.factual_anchors.length > 0 ? (
+              <ul>
+                {chapter.factual_anchors.map((anchor) => (
+                  <li key={anchor}>{anchor}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">本章暂无事实锚点。</p>
+            )}
           </article>
         ))}
       </div>

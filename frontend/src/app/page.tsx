@@ -19,12 +19,12 @@ const sampleText = `第1章：开端
 顾衡出现在剧院，试图夺走档案。他警告林舟继续追查只会害了许晚。林舟必须决定是保护许晚离开，还是继续追查父亲失踪的真相。`;
 
 const workflowSteps = [
-  "Parse：识别章节并切分长文本",
-  "Analyze：逐章提取角色、冲突和候选场景",
-  "Merge：合并为全局 Story Bible",
-  "Generate：按 Schema 生成剧本 JSON",
-  "Validate：校验必填字段",
-  "Export：导出 YAML"
+  ["01", "Novel Text", "解析多章节长文本"],
+  ["02", "Chapter Analysis", "逐章结构化分析"],
+  ["03", "Story Bible", "合并全局故事资料"],
+  ["04", "Factual Anchors", "保留关键事实锚点"],
+  ["05", "Fidelity Check", "检查并修复事实风险"],
+  ["06", "YAML Screenplay", "校验并导出结构化剧本"]
 ];
 
 export default function Home() {
@@ -64,7 +64,11 @@ export default function Home() {
           <h2>长文本处理流水线</h2>
           <div className="workflow-steps">
             {workflowSteps.map((step) => (
-              <span key={step}>{step}</span>
+              <div className="workflow-step" key={step[0]}>
+                <span>{step[0]}</span>
+                <strong>{step[1]}</strong>
+                <small>{step[2]}</small>
+              </div>
             ))}
           </div>
         </section>
@@ -75,8 +79,8 @@ export default function Home() {
           <NovelInput value={novelText} onChange={setNovelText} onUseSample={() => setNovelText(sampleText)} />
           <div className="result-column">
             <ResultSections result={result} />
-            <YamlPreview yaml={result?.screenplay_yaml ?? ""} />
             <ValidationResult validation={result?.validation ?? null} fidelityResult={result?.fidelity_result ?? null} />
+            <YamlPreview yaml={result?.screenplay_yaml ?? ""} />
           </div>
         </div>
       </section>

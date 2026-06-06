@@ -74,6 +74,14 @@ AI_MODEL=your-model-name
 AI_TIMEOUT_SECONDS=180
 ```
 
+环境变量说明：
+
+- `AI_PROVIDER`：AI 客户端模式，支持 `mock` 或 `real`，未配置时默认为 `mock`。
+- `AI_API_KEY`：真实模型 API 密钥，仅在 `real` 模式需要。
+- `AI_BASE_URL`：OpenAI-compatible API 基础地址，可包含 `/v1`。
+- `AI_MODEL`：真实模式使用的模型名称。
+- `AI_TIMEOUT_SECONDS`：单次真实 LLM 请求超时时间，默认 180 秒。
+
 不要提交 `.env`，只提交 `.env.example`。`AI_TIMEOUT_SECONDS` 用于控制每次真实 LLM HTTP 请求的超时时间，未配置时默认 180 秒。长文本在合并 Story Bible、生成剧本或事实检查阶段可能耗时更久，可以适当调大；配置必须是正整数秒数。
 
 ## 本地运行

@@ -203,14 +203,31 @@ h4 {
   gap: 8px;
 }
 
-.workflow-steps span {
-  min-height: 58px;
+.workflow-step {
+  display: flex;
+  min-width: 0;
+  min-height: 94px;
+  flex-direction: column;
+  gap: 6px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 10px;
+  padding: 12px;
   background: var(--soft);
-  color: #344054;
-  font-size: 13px;
+}
+
+.workflow-step span {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workflow-step strong {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.workflow-step small {
+  color: var(--muted);
   line-height: 1.45;
 }
 
@@ -257,6 +274,106 @@ h4 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.quality-description,
+.section-intro p {
+  margin-bottom: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.section-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-tag {
+  flex: 0 0 auto;
+  border: 1px solid #b7ddd7;
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--accent-dark);
+  background: #e7f5f3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.anchor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.anchor-group {
+  border-left: 3px solid var(--accent);
+  padding: 10px 12px;
+  background: #f8fbfa;
+}
+
+.anchor-group ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.anchor-group li {
+  margin-bottom: 7px;
+  line-height: 1.6;
+}
+
+.issue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.issue-item {
+  border: 1px solid #efc5bf;
+  border-radius: 6px;
+  padding: 12px;
+  background: #fff8f7;
+}
+
+.issue-item p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.issue-item small {
+  color: #7a271a;
+  line-height: 1.5;
+}
+
+.issue-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.issue-heading code {
+  overflow-wrap: anywhere;
+  color: #475467;
+}
+
+.severity {
+  border-radius: 4px;
+  padding: 3px 6px;
+  color: #7a271a;
+  background: #fee4e2;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.severity-low {
+  color: #344054;
+  background: #eaecf0;
+}
+
+.severity-medium {
+  color: #93370d;
+  background: #ffead5;
 }
 
 .quality-grid strong {
@@ -384,7 +501,8 @@ h4 {
 @media (max-width: 1020px) {
   .layout-grid,
   .workflow-steps,
-  .mini-grid {
+  .mini-grid,
+  .anchor-grid {
     grid-template-columns: 1fr;
   }
 
