@@ -35,10 +35,12 @@ export function YamlPreview({ yaml, embedded = false }: YamlPreviewProps) {
           <span className="section-kicker">OUTPUT</span>
           <h2>YAML 剧本</h2>
         </div>
-        <div className="button-row">
-          <Button className="secondary-button" onClick={handleCopy} disabled={!yaml}>复制 YAML</Button>
-          <Button className="secondary-button" onClick={handleDownload} disabled={!yaml}>下载 screenplay.yaml</Button>
-        </div>
+        {yaml ? (
+          <div className="button-row">
+            <Button className="secondary-button" onClick={handleCopy}>复制 YAML</Button>
+            <Button className="secondary-button" onClick={handleDownload}>下载 screenplay.yaml</Button>
+          </div>
+        ) : null}
       </div>
       <pre className="yaml-output"><code>{yaml || "# 生成后将在这里展示结构化剧本 YAML"}</code></pre>
     </>

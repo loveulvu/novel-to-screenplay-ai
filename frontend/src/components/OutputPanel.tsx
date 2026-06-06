@@ -22,7 +22,7 @@ export function OutputPanel({ result, loading }: OutputPanelProps) {
   }, [result]);
 
   return (
-    <Card className="tool-card output-card">
+    <Card className={`tool-card output-card output-card-${loading ? "loading" : result ? section.toLowerCase() : "empty"}`}>
       <div className="output-card-header">
         <div>
           <span className="section-kicker">OUTPUT</span>
