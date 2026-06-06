@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
+	"unicode/utf8"
 
 	"novel-to-screenplay-ai/internal/ai"
 	"novel-to-screenplay-ai/internal/analysis"
@@ -33,6 +35,13 @@ type generateMeta struct {
 	AIModel    string `json:"ai_model"`
 }
 
+type parserDebug struct {
+	NovelTextLength     int      `json:"novel_text_length"`
+	ParsedChapterCount  int      `json:"parsed_chapter_count"`
+	ParsedChapterTitles []string `json:"parsed_chapter_titles"`
+	First300Chars       string   `json:"first_300_chars"`
+}
+
 func Generate(c *gin.Context) {
 
 	var req generateRequest
@@ -44,9 +53,17 @@ func Generate(c *gin.Context) {
 	}
 
 	chapters := novel.ParseChapters(req.NovelText)
+	titles := parsedChapterTitles(chapters)
+	log.Printf("parser debug: novel_text_length=%d parsed_chapter_count=%d parsed_chapter_titles=%q", utf8.RuneCountInString(req.NovelText), len(chapters), titles)
 	if len(chapters) < 3 {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "at least 3 chapters are required",
+			"debug": parserDebug{
+				NovelTextLength:     utf8.RuneCountInString(req.NovelText),
+				ParsedChapterCount:  len(chapters),
+				ParsedChapterTitles: titles,
+				First300Chars:       firstNChars(req.NovelText, 300),
+			},
 		})
 		return
 	}
@@ -126,4 +143,20 @@ func applySourceChaptersFromAnalyses(target *screenplay.Screenplay, analyses []a
 		})
 	}
 	target.SourceChapters = sourceChapters
+}
+
+func parsedChapterTitles(chapters []novel.Chapter) []string {
+	titles := make([]string, 0, len(chapters))
+	for _, chapter := range chapters {
+		titles = append(titles, chapter.Title)
+	}
+	return titles
+}
+
+func firstNChars(value string, limit int) string {
+	runes := []rune(value)
+	if len(runes) <= limit {
+		return value
+	}
+	return string(runes[:limit])
 }
