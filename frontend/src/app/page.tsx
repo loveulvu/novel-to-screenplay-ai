@@ -66,7 +66,7 @@ export default function Home() {
           colorText: "#171717",
           colorTextSecondary: "#737373",
           borderRadius: 10,
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif'
+          fontFamily: 'Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
         }
       }}
     >
