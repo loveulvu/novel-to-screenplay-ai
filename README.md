@@ -4,6 +4,8 @@
 
 本项目不是一次性把全文丢给模型生成 YAML 的简单 prompt 套壳，而是固定 AI Workflow / Pipeline：先做章节级 Map 分析，再做 Reduce 合并，最后用事实锚点、事实一致性检查和 Schema 校验约束剧本生成。
 
+输出定位是“忠实于原文事实的剧本化改编初稿”：允许压缩叙述、生成保守的改编对白和可拍摄动作，但关键数字、人物关系、地点、事件结果与章节来源必须可回溯。
+
 ## 核心亮点
 
 - 多章节长文本处理
@@ -76,12 +78,14 @@ AI_TIMEOUT_SECONDS=180
 
 ## 本地运行
 
-启动后端：
+Mock 模式无需配置密钥，启动后端：
 
 ```bash
 cd backend
 go run ./cmd/server
 ```
+
+Real 模式先参考 `.env.example` 创建本地 `.env`，设置 `AI_PROVIDER=real` 及 API 配置，再使用同一命令启动。真实模式会执行逐章分析、Story Bible 合并、剧本生成和 Fidelity Check；任何模式都不会绕过 Schema Validate。
 
 启动前端：
 

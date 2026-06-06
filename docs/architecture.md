@@ -5,7 +5,15 @@
 ## 主流程
 
 ```text
-Parse -> Analyze -> Extract Factual Anchors -> Merge -> Generate -> Fidelity Check & Repair -> Validate -> Export
+Novel Text
+-> Parse Chapters
+-> Analyze Each Chapter
+-> Extract Factual Anchors
+-> Merge Story Bible
+-> Generate Screenplay JSON
+-> Fidelity Check & Repair
+-> Schema Validate
+-> Export YAML
 ```
 
 代码主链路保持稳定：
