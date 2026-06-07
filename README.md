@@ -4,7 +4,8 @@
 
 ## Demo Video
 
-[Watch Demo Video](https://github.com/loveulvu/novel-to-screenplay-ai/releases/tag/v0.1.0)
+- 在线演示视频（Bilibili）：[Watch Demo Video](https://www.bilibili.com/video/BV1rGEb6aE7u/)
+- 备用下载链接（GitHub Release）：[Download Demo Video](https://github.com/loveulvu/novel-to-screenplay-ai/releases/tag/v0.1.0)
 
 Demo 展示完整流程：
 
