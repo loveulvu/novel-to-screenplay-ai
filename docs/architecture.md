@@ -1,117 +1,128 @@
-# 架构说明
+# 系统架构与设计取舍
 
-本项目第一版是无登录、无数据库、可本地运行的 MVP。系统采用固定 AI Workflow / Pipeline，而不是完全自主 agent。每一步都有明确输入输出，方便讲解、调试和后续替换真实 LLM。
+本项目采用固定、可控的 AI Workflow，将多章节小说转换为经过质量门控的结构化 YAML 剧本。
 
 ## 主流程
 
 ```text
 Novel Text
--> Parse Chapters
--> Analyze Each Chapter
--> Extract Factual Anchors
--> Merge Story Bible
--> Generate Screenplay JSON
--> Fidelity Check & Repair
--> Schema Validate
--> Export YAML
+→ Parse Chapters
+→ Analyze Each Chapter
+→ Extract Factual Anchors
+→ Merge Story Bible
+→ Generate Screenplay JSON
+→ Fidelity Check & Repair
+→ Schema Validate
+→ Export YAML
 ```
 
-代码主链路保持稳定：
+代码主链路：
 
 ```text
 ParseChapters
--> AnalyzeChapters
--> Extract Factual Anchors
--> MergeStoryBible
--> GenerateScreenplay
--> FidelityCheck
--> FidelityRepair
--> ValidateScreenplay
--> ToYAML
+→ AnalyzeChapters
+→ MergeStoryBible
+→ GenerateScreenplay
+→ CheckAndRepairOnce
+→ ValidateScreenplay
+→ ToYAML
 ```
 
-当前支持 `ai.MockClient` 和 OpenAI-compatible `RealClient`，通过 `AI_PROVIDER` 切换。
+## 固定 AI Workflow，不是复杂 Agent
 
-## Parse
+本项目采用可控流水线，而不是让 LLM 自主决定工具、步骤和循环次数。比赛与 Demo 场景更重视稳定性、可解释性和可调试性；固定 Workflow 能明确展示每一步的输入、输出和失败位置，也便于单独替换模型或模块。
+
+## 为什么不直接全文一次生成 YAML
+
+长文本一次生成容易出现：
+
+- 早期章节细节遗漏
+- 跨章节人物名称或关系漂移
+- 关键数字、地点和事件结果被改写
+- 输出过长导致截断
+- YAML 字段缺失或格式错误
+
+因此系统先拆分章节和保存中间态，再生成最终剧本。
+
+## Map-Reduce 思路
+
+### Map：逐章分析
+
+`Analyze Each Chapter` 对每章单独分析，提取章节摘要、人物、地点、关键事件、冲突、候选场景和事实锚点，生成 `ChapterAnalysis`。
+
+独立分析能够保留长文本细节，也让每章结果可单独检查。
+
+### Reduce：合并 Story Bible
+
+`Merge Story Bible` 合并所有章节分析，统一跨章节人物、时间线、主线冲突和分场计划，生成全局 `StoryBible`。
+
+Story Bible 为最终剧本提供稳定的全局视角，减少多章节改编中的剧情漂移。
+
+## 模块职责
+
+### Parse
 
 位置：`backend/internal/novel`
 
-解析用户粘贴的长文本，识别章节标题并切分章节。章节标题前的前言、简介和空行不会被自动生成未命名章节；如果全文没有章节标题，会返回空切片，再由 handler 按少于三章返回 400。
+识别中文章、节和英文 `Chapter` 标题，切分用户输入的多章节小说。输入少于三个章节时，API 返回明确错误。
 
-## Analyze
+### Analyze
 
 位置：`backend/internal/analysis`
 
-Analyze 类似 Map 阶段：每章单独分析，产出 `ChapterAnalysis`。这一层不会直接生成剧本，而是把每章转成更适合改编的结构化信息：
+逐章调用 LLM，生成 `ChapterAnalysis` 和 `factual_anchors`。该阶段不直接生成最终剧本。
 
-- 章节摘要
-- 单章角色提及 `CharacterMention`
-- 地点
-- 关键事件
-- 冲突
-- 候选场景 `SceneCandidate`
-- 硬事实锚点 `factual_anchors`
-
-这样做可以避免直接从长篇原文跳到最终剧本，也方便解释长文本处理过程。
-
-## Merge
+### Merge
 
 位置：`backend/internal/story`
 
-Merge 类似 Reduce 阶段：把多章分析结果合并为全局故事资料 `StoryBible`。这一层负责统一跨章节信息，例如角色、主冲突、时间线和分场计划。
+将多章分析结果合并为 `StoryBible`，统一全局人物、时间线、主冲突和场景计划。
 
-## Generate
+### Generate
 
 位置：`backend/internal/screenplay`
 
-Generate 根据 `StoryBible`、`ChapterAnalysis` 和 `factual_anchors` 生成结构化 `Screenplay`。最终剧本包含：
+根据 Story Bible、Chapter Analysis 和事实锚点生成结构化 `Screenplay` JSON。
 
-- 标题
-- 来源章节 `source_chapters`
-- 全局角色表 `characters`
-- 分场剧本 `scenes`
-
-## Fidelity Check & Repair
-
-位置：`backend/internal/fidelity` 和 `backend/internal/ai`
-
-Fidelity Check 用于检查 unsupported claims，例如关键数字、资质等级、人物关系、地点、道具、观察方式、身体反应、章节归属、actions 或 dialogues 是否被改写或凭空补写。
-
-当检查结果包含 `medium` 或 `high` 风险时，系统会触发一次 Fidelity Repair。Repair 只修复 issues 指出的事实问题，修复后再检查一次；如果仍有风险，不无限重试，而是把 `fidelity_result` 返回给前端展示。
-
-## Validate
-
-位置：`backend/internal/screenplay/validator.go`
-
-Validate 用于防止 LLM 输出缺字段或结构不完整。即使当前是 mock 数据，也保留校验层，方便后续替换真实模型后约束输出质量。
-
-当前重点校验：
-
-- `title`
-- `source_chapters.number/title`
-- `characters.id/name/role`
-- `scenes.id/location/time/summary`
-- `scenes.characters`
-- `scenes.dialogues`
-- `dialogues.character/line`
-
-`dialogue.emotion` 不强制，因为有些台词可以是中性表达。`actions` 暂时不强制，因为有些场景可以主要由对白推进。
-
-## Export
+### Export
 
 位置：`backend/internal/screenplay/yaml.go`
 
-Export 把内部 JSON / Go struct 转换为最终 YAML 字符串，供前端展示、复制和下载。中间态使用 JSON / Go struct 是为了便于程序解析、校验和 API 传输；最终输出 YAML 是为了更适合人工阅读、编辑，也符合题目要求。
+将内部 JSON / Go struct 转换为最终 YAML，供前端预览、复制和下载。
 
-## 为什么不是 Agent
+## 质量门控
 
-本项目不是完全自主 agent，不让模型自由决定工具调用、循环步骤或长期记忆。它是固定 AI Workflow / Pipeline：
+### Fidelity Check
 
-- Analyze：逐章分析，类似 Map。
-- Merge：合并多章结果，类似 Reduce。
-- Generate：按 Story Bible、章节分析和事实锚点生成剧本。
-- Fidelity Check & Repair：降低事实偏差风险。
-- Validate：检查结构完整性。
-- Export：输出 YAML。
+位置：`backend/internal/fidelity`
 
-这种设计更适合 MVP 演示：结构清楚、边界明确、容易解释，也方便后续替换或扩展真实 LLM client。
+负责事实一致性，检查生成剧本是否出现：
+
+- 无依据事实
+- 人物关系错误
+- 关键数字错误
+- 地点、道具或事件结果错误
+- 章节归属混乱
+
+当存在中高风险问题时，系统只执行一次定向 Fidelity Repair，再重新检查。限制修复次数可以避免无限循环，并保留可解释的最终检查结果。
+
+### Schema Validate
+
+位置：`backend/internal/screenplay/validator.go`
+
+负责结构完整性，检查标题、来源章节、角色、场景、对白等关键字段是否存在且可被程序读取。
+
+Schema Validate 与 Fidelity Check 是两道不同质量门控：前者检查“结构是否正确”，后者检查“内容是否忠实”。
+
+## Mock 与 Real Provider
+
+后端通过 `AI_PROVIDER` 切换：
+
+- `mock`：无需 API Key，适合开发、测试和稳定 Demo。
+- `real`：调用 OpenAI-compatible Chat Completions API，执行真实逐章分析、合并、生成和事实检查。
+
+两种模式都保留相同 Workflow 和 Schema Validate。
+
+## 设计边界
+
+当前版本聚焦于可解释的小说转剧本核心流程，不包含数据库、登录、历史记录、文件上传、流式输出、多人协作或桌面端。

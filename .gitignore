@@ -24,3 +24,6 @@ backend/.gocache/
 .env.local
 frontend/.env.local
 backend/.env
+
+# UI/UX Pro Max Skill
+.codex/skills/ui-ux-pro-max/

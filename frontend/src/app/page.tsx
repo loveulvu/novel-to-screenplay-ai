@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, ConfigProvider, Tag } from "antd";
 import { GeneratePanel } from "@/components/GeneratePanel";
 import { NovelInput } from "@/components/NovelInput";
 import { OutputPanel } from "@/components/OutputPanel";
 import { ResultSections } from "@/components/ResultSections";
+import { WorkflowStepper } from "@/components/WorkflowStepper";
 import { generateScreenplay } from "@/lib/api";
 import type { GenerateResponse } from "@/lib/api";
 
-const sampleText = `第1章 雨夜钥匙
-林澈在雨夜回到老街。巷口的邮筒早已停用，却在这天晚上吐出一封没有署名的信。
+const sampleText = `第一章 雨夜钥匙
+林澈在雨夜回到老街。巷口的邮箱早已停用，却在这天晚上吐出一封没有署名的信。
 信封里只有一把铜钥匙和半张旧剧票。剧票背面写着父亲熟悉的字迹：海棠剧院，午夜之后。
 
 第二章 旧剧院
@@ -21,17 +22,22 @@ Chapter 3 舞台对峙
 顾衡在灯光亮起时出现，要求林澈交出铜钥匙。
 林澈握紧钥匙，决定启动时钟，查清父亲消失的真相。`;
 
-const workflowSteps = [
-  ["01", "Chapter Analysis", "Extract characters, events, and scenes."],
-  ["02", "Story Bible", "Merge facts into a consistent story source."],
-  ["03", "YAML Screenplay", "Generate structured screenplay output."]
-];
-
 export default function Home() {
   const [novelText, setNovelText] = useState("");
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  useEffect(() => {
+    if (!loading) return;
+
+    const timer = window.setInterval(() => {
+      setLoadingStep((step) => Math.min(step + 1, 4));
+    }, 1600);
+
+    return () => window.clearInterval(timer);
+  }, [loading]);
 
   async function handleGenerate() {
     if (!novelText.trim()) {
@@ -39,6 +45,7 @@ export default function Home() {
       return;
     }
 
+    setLoadingStep(1);
     setLoading(true);
     setError("");
 
@@ -60,12 +67,12 @@ export default function Home() {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#1f1f1f",
-          colorInfo: "#1f1f1f",
-          colorBorder: "#e5e5e5",
-          colorText: "#171717",
-          colorTextSecondary: "#737373",
-          borderRadius: 10,
+          colorPrimary: "#18181b",
+          colorInfo: "#18181b",
+          colorBorder: "#dedede",
+          colorText: "#18181b",
+          colorTextSecondary: "#666666",
+          borderRadius: 8,
           fontFamily: 'Inter, Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
         }
       }}
@@ -73,29 +80,19 @@ export default function Home() {
       <main className="page-shell">
         <header className="hero-section">
           <div className="hero-copy">
-            <span className="hero-eyebrow">STRUCTURED STORY ADAPTATION</span>
+            <span className="hero-eyebrow">AI STORY ADAPTATION WORKBENCH</span>
             <h1>Novel to Screenplay AI</h1>
-            <p className="hero-subtitle">Convert multi-chapter novels into structured Story Bible and screenplay YAML.</p>
-            <p className="hero-description">Paste 3–5 chapters, analyze story facts, and export validated YAML.</p>
+            <p className="hero-subtitle">从多章节小说到可校验 YAML 剧本的结构化 AI 工作流</p>
           </div>
           <div className="status-tags" aria-label="系统能力">
-            <Tag><i className="status-dot" />Real LLM</Tag>
-            <Tag>YAML Schema</Tag>
+            <Tag><i className="status-dot" />Provider Ready</Tag>
+            <Tag>Map-Reduce</Tag>
+            <Tag>Factual Anchors</Tag>
             <Tag>Fidelity Check</Tag>
           </div>
         </header>
 
-        <section className="process-strip" aria-label="Generation process">
-          {workflowSteps.map(([number, title, description]) => (
-            <article className="process-step" key={number}>
-              <span>{number}</span>
-              <div>
-                <strong>{title}</strong>
-                <p>{description}</p>
-              </div>
-            </article>
-          ))}
-        </section>
+        <WorkflowStepper currentStep={result && !loading ? 5 : loading ? loadingStep : 0} loading={loading} />
 
         {error ? (
           <Alert
@@ -105,7 +102,7 @@ export default function Home() {
             message={error}
             description={
               error === "请至少输入 3 个章节或分节。"
-                ? "建议粘贴 3～5 章小说内容，以便生成更稳定的 Story Bible 和 YAML 剧本。"
+                ? "建议粘贴 3～5 章小说内容，以生成更稳定的 Story Bible 和 YAML 剧本。"
                 : "确认服务与输入后，可在左侧重新发起生成。"
             }
             closable
@@ -130,7 +127,7 @@ export default function Home() {
           </aside>
 
           <section className="result-column">
-            <OutputPanel result={result} loading={loading} />
+            <OutputPanel result={result} loading={loading} loadingStep={loadingStep} />
           </section>
         </div>
 

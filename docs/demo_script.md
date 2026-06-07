@@ -1,77 +1,95 @@
-# 3～5 分钟 Demo 演示脚本
+# 3～5 分钟 Demo 录制脚本
 
-## 0:00～0:30 项目定位
+## 0:00～0:25 项目一句话介绍
 
-画面：打开前端首页，停留在小说输入区和流程说明。
+**画面：** 打开前端首页，展示标题、Workflow Stepper 和小说输入区。
 
-讲解：
+**讲解：**
 
-> 这是一个面向小说作者的 AI 剧本化改编工具。它不是把全文一次性交给模型，而是通过固定的 Map-Reduce 风格工作流，先逐章分析，再合并 Story Bible，最后生成经过事实一致性检查和 Schema 校验的 YAML 剧本初稿。
+> 这是 Novel to Screenplay AI，一个基于多阶段 AI Workflow 的小说转结构化 YAML 剧本工具，对应七牛云 × XEngineer 暑期实训营第三批次议题三。
 
-## 0:30～1:00 输入三章小说
+## 0:25～0:45 说明题目与设计思路
 
-操作：
+**画面：** 指向顶部 Workflow Stepper。
 
-1. 点击“填入示例小说”，或粘贴 `examples/input_novel.txt`。
-2. 简要展示三个章节标题和长文本输入框。
-3. 点击“生成剧本 YAML”。
+**讲解：**
 
-讲解：
+> 本项目不是一次性把全文丢给模型生成 YAML，而是采用多阶段 AI Workflow。系统先做章节级结构化分析，再合并为 Story Bible，之后根据事实锚点生成剧本，并通过 Fidelity Check 和 Schema Validate 做质量控制。
 
-> 输入至少三章小说后，后端首先解析章节。每个章节会独立进入分析阶段，因此长文本不会直接挤进一次生成请求。
+## 0:45～1:10 展示输入小说
 
-## 1:00～2:00 展示章节分析与事实锚点
+**操作：**
 
-画面：生成完成后，展开或滚动查看章节分析结果。
+1. 点击“填入示例小说”。
+2. 简要滚动输入框，展示三个章节标题。
 
-重点展示：
+**讲解：**
 
-- `chapter_number`、`chapter_title`、`summary`
-- 章节人物、地点、关键事件和冲突
-- `scene_candidates`
-- `factual_anchors`
+> 输入至少三个章节后，系统会先识别章节边界。每章会单独进入分析阶段，因此长文本不会直接挤进一次生成请求。
 
-讲解：
+## 1:10～1:30 点击生成
 
-> Analyze 是 Map 阶段。系统逐章提取人物、地点、冲突和候选场景，同时记录 factual anchors。事实锚点保存关键数字、人物关系、地点和事件结果，用来约束最终剧本，减少模型改错事实。
+**操作：** 点击“生成剧本 YAML”，展示 Stepper 和 Loading Pipeline 的阶段变化。
 
-## 2:00～2:40 展示 Story Bible
+**讲解：**
 
-画面：滚动到 Story Bible 区域，展示标题、logline、全局人物、时间线、主冲突和场景计划。
+> 生成过程依次完成章节分析、Story Bible 合并、事实检查和 YAML 导出。固定流程让每一步都可解释，也方便定位问题。
 
-讲解：
+## 1:30～2:05 解释 Chapter Analysis
 
-> Merge 是 Reduce 阶段。它把多章分析合并为 Story Bible，统一跨章节人物、时间线、主冲突和场景计划，为最终剧本提供全局视角。
+**操作：** 在 `Chapter Analysis` 页签展开第一章。
 
-## 2:40～3:40 展示 YAML 剧本与质量报告
+**讲解：**
 
-画面：展示 YAML 区域和 Quality Report。
+> Chapter Analysis 是 Map 阶段。系统每章单独提取人物、地点、事件、冲突和候选场景，用于保留长文本细节。这里还能看到角色状态变化和场景改编建议。
 
-重点展示：
+## 2:05～2:30 解释 Factual Anchors
 
-- `source_chapters` 保留原始章节标题
-- `characters` 使用稳定 id
-- `scenes` 中的地点、对白和动作
-- Schema 校验结果
-- Fidelity Check 结果及 issues
+**操作：** 切换到 `Factual Anchors`。
 
-讲解：
+**讲解：**
 
-> Generate 会使用 Story Bible、章节分析和事实锚点生成 Screenplay JSON。随后 Fidelity Check 检查数字、人物关系、地点、道具和章节归属是否存在无依据补写；必要时最多修复一次。Schema Validate 则确保最终结构字段完整。两种检查关注点不同，不能互相替代。
+> 事实锚点记录原文中必须保留的硬事实，例如关键数字、人物关系、地点、事件结果和关键短句。后续剧本生成和 Fidelity Check 都会使用这些锚点，减少模型改错事实。
 
-## 3:40～4:10 复制与下载
+## 2:30～2:55 解释 Story Bible
 
-操作：
+**操作：** 切换到 `Story Bible`。
+
+**讲解：**
+
+> Story Bible 是 Reduce 阶段。它把多章分析合并为全局故事资料，统一人物、时间线、主线冲突和分场计划，减少多章节改编中的剧情漂移。
+
+## 2:55～3:25 解释 Fidelity Check 与 Schema Validate
+
+**操作：** 切换结果区的 `Quality` 页签。
+
+**讲解：**
+
+> 这里有两道质量门控。Fidelity Check 检查无依据事实、人物关系错误、关键数字错误和章节归属混乱；Schema Validate 检查最终结构是否完整、是否能被程序读取。两者关注的问题不同，不能互相替代。
+
+## 3:25～3:55 展示 YAML 输出
+
+**操作：** 切换到 `YAML` 页签，滚动展示 `source_chapters`、`characters` 和 `scenes`。
+
+**讲解：**
+
+> 最终剧本使用 YAML 输出。`source_chapters` 保留与原小说章节的对应关系，`characters` 统一人物引用，`scenes` 保存地点、时间、对白和动作。中间态使用 JSON 和 Go struct 方便校验，YAML 更适合阅读和编辑。
+
+## 3:55～4:10 复制与下载
+
+**操作：**
 
 1. 点击“复制 YAML”。
 2. 点击“下载 screenplay.yaml”。
 
-讲解：
+**讲解：**
 
-> 中间态使用 JSON 和 Go struct，方便程序解析、API 传输和校验；最终导出 YAML，方便作者阅读、复制、修改和继续创作。
+> 结果可以直接复制或下载，方便作者继续编辑和二次创作。
 
-## 4:10～4:30 收尾
+## 4:10～4:35 总结项目亮点
 
-讲解：
+**画面：** 返回 Overview 或停留在完整结果页。
 
-> 当前 MVP 支持 mock 和 real 两种模式，不包含登录、数据库、历史记录或文件上传。真实生成质量仍取决于模型，但章节级分析、事实锚点、Fidelity Check 和 Schema Validate 让生成过程更可解释、更容易控制。
+**讲解：**
+
+> 项目的核心亮点不是单次 Prompt，而是可解释的长文本改编流程：章节级 Map 分析、Story Bible Reduce 合并、事实锚点约束、Fidelity Check 事实检查和 Schema Validate 结构校验。当前版本同时支持 mock 与 real provider，适合稳定演示，也可以接入真实 OpenAI-compatible 模型。

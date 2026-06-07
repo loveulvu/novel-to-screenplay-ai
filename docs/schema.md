@@ -1,33 +1,20 @@
-# YAML Schema 设计
+# YAML Schema 设计说明
 
-最终输出的剧本 YAML 以结构化、可校验、方便展示为目标。当前 MVP 覆盖小说改编里最重要的来源章节、角色表和分场剧本，后续可以继续扩展镜头、旁白、道具、节奏和转场。
+最终剧本使用结构化 YAML 表达。设计目标是：既保留小说来源和事实约束，又让结果适合阅读、编辑、复制、下载与程序校验。
 
-本项目输出的是“忠实于原文事实的剧本化改编初稿”，不是逐字转写，也不是完全自由二创。系统允许把叙述压缩成场景、把心理活动转换成可表演动作、生成少量符合处境的改编对白，但不得改变原文事实、人物立场、事件结果或因果关系。
-
-## 剧本化改编边界
-
-- `dialogues.line` 可能保留原文中具有标志性的短句，也可能是剧本化改编对白。
-- 改编对白必须符合原文人物处境和故事气质，不得加入原文没有的具体事实。
-- `actions` 是对原文叙述和心理活动的可表演化转换，适合使用观察、沉默、停顿、转身等低风险动作，不应凭空新增道具、法术、数量或关键行为。
-- 关键数字、资质等级、人物关系、地点和事件结果必须与原文保持一致，例如步数、数量、甲等/乙等/丙等资质这类信息不能被概略改写。
-- 同一场景的 `source_chapter` 必须匹配事实来源，不能把后续章节的宣布结果提前放入前一章场景。
-- `actions` 应写成完整可拍摄动作句，而不是“若有所思”“目光微凝”这类短碎片列表。
-- `source_chapters.title` 保留 parser 识别出的原始章节标题，方便作者回溯来源章节并核对改编内容。
-- `fidelity_result` 用于展示事实一致性检查结果，帮助用户发现剧本中可能存在的 unsupported claims。
-
-## 顶层字段
+## 顶层结构
 
 ```yaml
 title: "雨夜旧剧院"
 source_chapters:
   - number: 1
     title: "雨夜钥匙"
-    summary: "林澈收到神秘信件，铜钥匙和剧票指向海棠剧院。"
+    summary: "林澈收到父亲留下的铜钥匙，线索指向海棠剧院。"
 characters:
   - id: "char_lin_che"
     name: "林澈"
     role: "主角"
-    description: "背负父亲失踪阴影的青年，外表克制，内心渴望确认父亲留下的真相。"
+    description: "追查父亲失踪真相的青年。"
 scenes:
   - id: "scene_001"
     source_chapter: 1
@@ -39,82 +26,84 @@ scenes:
     dialogues:
       - character: "char_lin_che"
         emotion: "迟疑"
-        line: "爸，如果这是你留下的线索，我一定会走到最后。"
+        line: "这把钥匙像是在等我回来。"
     actions:
-      - "林澈撑伞站在废弃邮筒前。"
+      - "林澈撑伞站在废弃邮箱前，铜钥匙滑入掌心。"
 ```
 
-## 字段定义
+## 为什么有 `source_chapters`
+
+`source_chapters` 用于保留剧本与原小说章节的对应关系。每个来源章节记录编号、原始标题和摘要，方便作者回溯事实来源、定位修改位置，也便于检查场景是否放错章节。
+
+## 为什么有 `characters`
+
+`characters` 是全局角色表，使用稳定 `id` 统一多章节人物引用，降低人物重名、别名、改名或名称漂移造成的混乱。场景和对白通过角色 `id` 引用同一个人物。
+
+## 为什么有 `scenes`
+
+剧本以场景为核心单位。每个场景包含来源章节、地点、时间、摘要、参与角色、对白和动作，使小说叙述能够转换为可展示、可编辑的分场剧本。
+
+## 为什么 Dialogue 拆成 `character` / `emotion` / `line`
+
+- `character`：明确说话人，支持角色引用校验。
+- `emotion`：明确语气和表演方向。
+- `line`：保存实际台词内容。
+
+拆分后更适合程序读取、表演提示、后续格式转换和人工编辑。
+
+## 为什么有 `actions`
+
+`actions` 用于把小说叙述和心理活动转成可拍摄、可表演的动作描述。动作应以原文事实为依据，使用完整动作句，不应为了画面感新增无依据的道具、身体反应或关键行为。
+
+## 字段约束
 
 - `title`：剧本标题，必须非空。
-- `source_chapters`：剧本覆盖的原小说章节列表，必须非空。
-- `source_chapters.number`：原小说章节编号。
-- `source_chapters.title`：原小说章节标题，由后端使用章节解析/章节分析结果确定性保留，方便回溯来源。
-- `source_chapters.summary`：该章节对改编剧本的核心贡献。
+- `source_chapters`：来源章节列表，必须非空。
+- `source_chapters.number/title/summary`：来源编号、原始标题和章节贡献摘要。
 - `characters`：全局角色列表，必须非空。
-- `characters.id`：角色稳定标识，必须非空。
-- `characters.name`：角色显示名称，必须非空。
-- `characters.role`：角色在剧本中的功能定位，必须非空。
-- `characters.description`：角色简介，包括人物状态、动机或改编重点。
-- `scenes`：剧本分场列表，必须非空。
-- `scene.id`：分场唯一标识，必须非空。
-- `scene.source_chapter`：该分场主要来自的小说章节。
-- `scene.location`：场景地点，必须非空。
-- `scene.time`：场景时间，必须非空。
-- `scene.summary`：分场摘要，必须非空。
-- `scene.characters`：参与该场的角色 id 列表，必须非空。
-- `scene.dialogues`：台词列表，必须非空。
-- `scene.actions`：动作和舞台提示列表，应是完整可拍摄动作句，用于把原文叙述或心理活动低风险外化。
-- `dialogue.character`：说话角色 id，必须非空。
-- `dialogue.emotion`：台词情绪，用于帮助表演和后续镜头设计。
-- `dialogue.line`：台词正文，必须非空。
+- `characters.id/name/role`：稳定标识、显示名称与角色功能，必须非空。
+- `characters.description`：人物状态、动机或改编重点。
+- `scenes`：分场列表，必须非空。
+- `scene.id/location/time/summary`：场景核心字段，必须非空。
+- `scene.source_chapter`：场景主要事实来源章节。
+- `scene.characters`：参与场景的角色 `id` 列表。
+- `scene.dialogues`：结构化对白列表。
+- `scene.actions`：可拍摄、可表演的动作列表。
+
+## 中间态为什么使用 JSON，最终为什么输出 YAML
+
+中间态使用 JSON / Go struct，便于程序序列化、API 传输、类型约束和自定义校验。最终输出 YAML，是因为 YAML 层级清晰、可读性更好，更适合作者复制、下载、编辑和继续二次创作。
 
 ## ChapterAnalysis 中间态
 
-章节分析结果使用 JSON 表达，面向小说改编分析而不是简单关键词抽取：
+逐章分析结果包含：
 
-- `characters` 使用 `CharacterMention`，记录角色在本章的功能、性格特征和状态变化。
-- `scene_candidates` 使用 `SceneCandidate`，记录地点、时间、戏剧目的、参与角色和关键事件。
-- `factual_anchors` 记录本章必须保留的硬事实，例如关键数字、步数、资质等级、人物关系、地点、事件结果、专有名词和关键短句。
-- `summary`、`key_events`、`conflicts` 用于后续合并 Story Bible，避免直接从原文跳到剧本。
+- `chapter_number` / `chapter_title` / `summary`
+- `characters`
+- `locations`
+- `key_events`
+- `conflicts`
+- `scene_candidates`
+- `factual_anchors`
 
-## FidelityResult 质量检查
+这层中间态用于保留长文本细节，避免直接从全文跳到最终剧本。
 
-`fidelity_result` 是事实一致性检查结果，不代替 Schema Validate。它重点检查关键数字、资质等级、人物关系、地点、道具、观察方式、身体反应、章节归属、actions 和 dialogues 是否出现无依据补写。
+## Factual Anchors
 
-```json
-{
-  "passed": true,
-  "issues": []
-}
-```
+`factual_anchors` 记录原文中必须保留的硬事实，例如：
 
-如果存在风险，`issues` 会包含 `field`、`severity`、`problem` 和 `suggestion`，前端会作为 Quality Report 展示。
+- 关键数字和数量
+- 人物关系
+- 地点和道具
+- 事件结果
+- 章节归属
+- 专有名词和关键短句
 
-## 为什么使用 title、source_chapters、characters、scenes
+这些事实用于约束生成和支撑 Fidelity Check。
 
-这四类字段组成最小可解释剧本结构。`title` 方便用户识别结果，`source_chapters` 让生成内容能回溯到原小说，`characters` 提供全局角色表，`scenes` 承载真正可展示和导出的剧本内容。
+## 双重质量检查
 
-## 为什么 source_chapters 使用对象
+- `Schema Validate` 负责结构完整性，检查必需字段是否存在且可读取。
+- `Fidelity Check` 负责事实一致性，检查是否出现无依据补写、人物关系错误、关键数字错误或章节归属混乱。
 
-只输出章节编号无法解释剧本来自哪里。对象形式保留 `number`、`title` 和 `summary`，既方便前端展示，也方便答辩时说明长文本章节级分析如何进入最终剧本。其中 `title` 保留原始章节标题，不交给 LLM 重新命名，避免作者回溯时失去来源锚点。
-
-## 为什么角色使用 id
-
-角色名可能重名、改名，也可能有别名。使用稳定的 `id` 可以避免后续生成、校验和局部编辑时混淆角色。展示层仍然可以把 `id` 映射回中文名。
-
-## 为什么 Character 增加 description
-
-`role` 只说明角色功能，例如主角、盟友、阻碍者。`description` 能补充人物状态、动机和改编重点，让最终 YAML 更像可继续创作的剧本资料，而不是只有姓名表。
-
-## 为什么 dialogue 拆成 character、emotion、line
-
-台词不只是文本。`character` 表明谁说，`emotion` 表明怎么说，`line` 表明说什么。拆开后可以支持校验、表演提示、镜头规划和后续更细的剧本格式导出。`line` 可以是原文短句的少量保留，也可以是改编对白，但改编对白不得改变原文事实或新增关键剧情。
-
-## 为什么 actions 使用字符串列表
-
-`actions` 用于保存可以直接表演或拍摄的动作句，使原文叙述和心理活动能够进入分场剧本。使用列表可以保留动作发生顺序，也便于后续扩展镜头设计。动作应以原文事实为依据，写成完整可拍摄句子；不得为了画面感新增无依据的道具、身体反应或关键行为。
-
-## 为什么中间态用 JSON，最终输出 YAML
-
-JSON 更适合作为后端接口和程序内部中间态，类型清晰，方便序列化、校验和前端消费。YAML 更适合作为最终交付结果，层级可读性更好，适合复制、编辑和人工讲解。
+两者关注不同问题，不能互相替代。

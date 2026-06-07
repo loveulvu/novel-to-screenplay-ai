@@ -15,60 +15,69 @@ type DetailSection = "Chapter Analysis" | "Factual Anchors" | "Story Bible";
 export function ResultSections({ result, detailsOnly = false }: ResultSectionsProps) {
   const [section, setSection] = useState<DetailSection>("Chapter Analysis");
 
-  if (result && detailsOnly) {
-    return (
-      <section className="detail-area">
-        <div className="detail-heading">
-          <div>
-            <span className="section-kicker">DETAILS</span>
-            <h2>详细生成结果</h2>
-          </div>
-          <Segmented<DetailSection>
-            options={["Chapter Analysis", "Factual Anchors", "Story Bible"]}
-            value={section}
-            onChange={setSection}
-          />
-        </div>
-        <div className="detail-content">
-          {section === "Chapter Analysis" ? (
-            <ChapterAnalyses analyses={result.chapter_analyses} />
-          ) : section === "Factual Anchors" ? (
-            <FactualAnchors analyses={result.chapter_analyses} />
-          ) : (
-            <StoryBibleView storyBible={result.story_bible} />
-          )}
-        </div>
-      </section>
-    );
-  }
+  if (!result || !detailsOnly) return null;
 
-  return null;
+  return (
+    <section className="detail-area">
+      <div className="detail-heading">
+        <div>
+          <span className="section-kicker">03 / PIPELINE ARTIFACTS</span>
+          <h2>查看中间产物</h2>
+          <p>追踪从章节分析到全局故事资料的结构化推理结果。</p>
+        </div>
+        <Segmented<DetailSection>
+          options={["Chapter Analysis", "Factual Anchors", "Story Bible"]}
+          value={section}
+          onChange={setSection}
+        />
+      </div>
+      <div className="detail-content">
+        {section === "Chapter Analysis" ? (
+          <ChapterAnalyses analyses={result.chapter_analyses} />
+        ) : section === "Factual Anchors" ? (
+          <FactualAnchors analyses={result.chapter_analyses} />
+        ) : (
+          <StoryBibleView storyBible={result.story_bible} />
+        )}
+      </div>
+    </section>
+  );
 }
 
 export function OverviewContent({ result }: { result: GenerateResponse }) {
   const provider = result.meta?.ai_provider ?? "unknown";
+  const issueCount = result.fidelity_result.issues.length;
 
   return (
     <>
       <div className="panel-title-row">
         <div>
-          <span className="section-kicker">OVERVIEW</span>
-          <h2>基础信息</h2>
+          <span className="section-kicker">RUN SUMMARY</span>
+          <h2>生成总览</h2>
         </div>
         <Tag className={provider === "real" ? "mode-badge real-mode" : "mode-badge mock-mode"}>
-          {provider === "real" ? "Real LLM" : provider === "mock" ? "Mock Mode" : "Unknown"}
+          <i />{provider === "real" ? "Real LLM" : provider === "mock" ? "Mock Mode" : "Unknown"}
         </Tag>
       </div>
       <div className="metric-grid">
         <Metric label="AI provider" value={provider} />
         <Metric label="AI model" value={result.meta?.ai_model || "未配置"} />
-        <Metric label="chapter_count" value={result.chapter_count} />
+        <Metric label="章节数量" value={String(result.chapter_count).padStart(2, "0")} />
         <Metric label="Schema 校验" value={result.validation.passed ? "通过" : "失败"} status={result.validation.passed} />
-        <Metric
-          label="Fidelity Check"
-          value={result.fidelity_result.passed ? "通过" : "有风险"}
-          status={result.fidelity_result.passed}
-        />
+        <Metric label="Fidelity Check" value={result.fidelity_result.passed ? "通过" : "有风险"} status={result.fidelity_result.passed} />
+        <Metric label="Issues" value={String(issueCount).padStart(2, "0")} status={issueCount === 0} />
+      </div>
+      <div className="completion-panel">
+        <div className="completion-copy">
+          <span className="section-kicker">PIPELINE STATUS</span>
+          <h3>工作流执行完成</h3>
+          <p>章节事实已汇总，剧本结构与一致性检查结果可供审阅。</p>
+        </div>
+        <div className="completion-list">
+          <p><i />Chapter Analysis</p>
+          <p><i />Story Bible</p>
+          <p><i />YAML Export</p>
+        </div>
       </div>
     </>
   );
@@ -85,10 +94,11 @@ function Metric({ label, value, status }: { label: string; value: string | numbe
 
 function ChapterAnalyses({ analyses }: { analyses: ChapterAnalysis[] }) {
   return (
-    <Card className="tool-card">
+    <Card className="tool-card artifact-card">
       <div className="card-heading">
-        <span className="section-kicker">CHAPTER ANALYSIS</span>
-        <h2>章节分析</h2>
+        <span className="section-kicker">MAP / CHAPTER ANALYSIS</span>
+        <h2>逐章结构化分析</h2>
+        <p>每章单独分析人物、地点、事件、冲突和候选场景，用于保留长文本细节。</p>
       </div>
       <div className="stack">
         {analyses.map((chapter) => (
@@ -127,8 +137,7 @@ function ChapterAnalyses({ analyses }: { analyses: ChapterAnalysis[] }) {
                 <div className="mini-grid">
                   {chapter.scene_candidates.map((scene, index) => (
                     <div className="mini-card" key={`${scene.location}-${index}`}>
-                      <strong>{scene.location || "未指定地点"}</strong>
-                      <span>{scene.time || "未指定时间"}</span>
+                      <div className="mini-card-top"><strong>{scene.location || "未指定地点"}</strong><span>{scene.time || "未指定时间"}</span></div>
                       <p>{scene.purpose}</p>
                       <small>角色：{scene.characters.join("、") || "无"}</small>
                       <small>事件：{scene.key_events.join("、") || "无"}</small>
@@ -146,16 +155,17 @@ function ChapterAnalyses({ analyses }: { analyses: ChapterAnalysis[] }) {
 
 function FactualAnchors({ analyses }: { analyses: ChapterAnalysis[] }) {
   return (
-    <Card className="tool-card anchors-panel">
+    <Card className="tool-card artifact-card anchors-panel">
       <div className="card-heading">
-        <span className="section-kicker">FACTUAL ANCHORS</span>
+        <span className="section-kicker">VERIFY / FACTUAL ANCHORS</span>
         <h2>事实锚点</h2>
-        <p>用于约束最终剧本并支撑 Fidelity Check。</p>
+        <p>记录原文中必须保留的硬事实，例如关键数字、人物关系、地点、事件结果和关键短句，用于约束后续剧本生成。</p>
       </div>
       <div className="stack compact-stack">
         {analyses.map((chapter) => (
           <article className="anchor-group" key={`${chapter.chapter_number}-${chapter.chapter_title}-anchors`}>
-            <h3>第 {chapter.chapter_number} 章 · {chapter.chapter_title}</h3>
+            <span>CH.{String(chapter.chapter_number).padStart(2, "0")}</span>
+            <h3>{chapter.chapter_title}</h3>
             {chapter.factual_anchors.length ? (
               <ul>{chapter.factual_anchors.map((anchor) => <li key={anchor}>{anchor}</li>)}</ul>
             ) : (
@@ -170,12 +180,14 @@ function FactualAnchors({ analyses }: { analyses: ChapterAnalysis[] }) {
 
 function StoryBibleView({ storyBible }: { storyBible: StoryBible }) {
   return (
-    <Card className="tool-card">
+    <Card className="tool-card artifact-card">
       <div className="card-heading">
-        <span className="section-kicker">STORY BIBLE</span>
-        <h2>Story Bible</h2>
+        <span className="section-kicker">REDUCE / STORY BIBLE</span>
+        <h2>全局故事资料</h2>
+        <p>将多章分析结果合并为全局故事资料，统一人物、时间线、主线冲突和分场计划，减少多章节改编中的剧情漂移。</p>
       </div>
       <div className="story-header">
+        <span className="section-kicker">LOGLINE</span>
         <h3>{storyBible.title}</h3>
         <p>{storyBible.logline}</p>
       </div>
@@ -196,8 +208,8 @@ function StoryBibleView({ storyBible }: { storyBible: StoryBible }) {
         <div className="mini-grid">
           {storyBible.scene_plan.map((scene) => (
             <div className="mini-card" key={scene.id}>
-              <strong>{scene.id}</strong>
-              <span>第 {scene.source_chapter} 章 / {scene.location} / {scene.time}</span>
+              <div className="mini-card-top"><strong>{scene.id}</strong><span>CH.{String(scene.source_chapter).padStart(2, "0")}</span></div>
+              <small>{scene.location} / {scene.time}</small>
               <p>{scene.summary}</p>
               <small>角色：{scene.characters.join("、") || "无"}</small>
             </div>

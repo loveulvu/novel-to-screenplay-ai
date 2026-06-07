@@ -1,72 +1,112 @@
-# novel-to-screenplay-ai
+# Novel to Screenplay AI
 
-面向小说作者的 AI 剧本化改编工具。用户粘贴 3 到 5 章小说文本后，系统会按章节做结构化分析，合并全局 Story Bible，再生成可校验、可复制、可下载的 YAML 剧本初稿。
+七牛云 × XEngineer 暑期实训营第三批次议题三：**AI 小说转剧本工具**。
 
-本项目不是一次性把全文丢给模型生成 YAML 的简单 prompt 套壳，而是固定 AI Workflow / Pipeline：先做章节级 Map 分析，再做 Reduce 合并，最后用事实锚点、事实一致性检查和 Schema 校验约束剧本生成。
+> 一个基于多阶段 AI Workflow 的小说转结构化 YAML 剧本工具。
 
-输出定位是“忠实于原文事实的剧本化改编初稿”：允许压缩叙述、生成保守的改编对白和可拍摄动作，但关键数字、人物关系、地点、事件结果与章节来源必须可回溯。
+用户输入 3～5 章小说文本后，系统先按章节解析并进行逐章结构化分析，再合并全局 Story Bible，最后生成经过事实一致性检查与结构校验的 YAML 剧本。
 
-## 核心亮点
-
-- 多章节长文本处理
-- Map-Reduce 风格 AI Workflow
-- Chapter-level structured analysis
-- Story Bible 全局合并
-- Factual Anchors 事实锚点
-- Fidelity Check 事实一致性检查
-- Fidelity Repair 一次事实修复
-- Schema Validate 结构校验
-- YAML Export 导出
-
-## 架构流程
+## 核心流程
 
 ```text
 Novel Text
--> Parse Chapters
--> Analyze Each Chapter
--> Extract Factual Anchors
--> Merge Story Bible
--> Generate Screenplay JSON
--> Fidelity Check & Repair
--> Schema Validate
--> Export YAML
+→ Parse Chapters
+→ Analyze Each Chapter
+→ Extract Factual Anchors
+→ Merge Story Bible
+→ Generate Screenplay JSON
+→ Fidelity Check & Repair
+→ Schema Validate
+→ Export YAML
 ```
 
-这条链路是固定 Pipeline，不是完全自主 agent。`Analyze Each Chapter` 是 Map 阶段，每章单独结构化分析；`Merge Story Bible` 是 Reduce 阶段，把多章人物、时间线、冲突和场景计划合并为全局资料。
+## 为什么不是简单 LLM 套壳
 
-## MVP 功能
+本项目没有直接一次性把全文交给模型生成 YAML，而是先进行章节级结构化分析，再合并 Story Bible，最后通过事实锚点和质量检查约束最终剧本生成。
 
-- 粘贴至少三章小说文本
-- 识别 `第1章`、`第一章`、`第一节`、`Chapter 1` 等章节标题
-- 输出章节级 `ChapterAnalysis`
-- 抽取每章 `factual_anchors`
-- 合并 `StoryBible`
-- 生成结构化 `Screenplay` JSON
-- 执行 Fidelity Check 和必要的一次 Fidelity Repair
-- 执行 Schema Validate
-- 展示、复制、下载最终 YAML
+这种固定 AI Workflow 更适合长文本改编：每个阶段都有明确输入输出，能够减少细节遗漏、人物漂移、事实幻觉和输出截断，也更方便展示、调试和替换模型。
 
-本版本不包含登录、数据库、历史记录、多人协作、PDF/Word 解析、文件上传和复杂编辑器。
+## 核心功能
 
-## 题目对应关系
+- 多章节小说输入
+- 中文章 / 节 / 英文 `Chapter` 解析
+- 分页章节合并
+- 逐章 LLM 分析
+- Story Bible 合并
+- Factual Anchors 事实锚点
+- Fidelity Check 与一次 Fidelity Repair
+- YAML Schema Validate
+- YAML 预览、复制和下载
+- Mock / Real AI Provider 切换
 
-七牛云 × XEngineer 暑期实训营第三批次议题三关注“AI 小说转剧本工具”。本项目对应的 MVP 是：输入多章节小说，经过长文本章节级分析、全局 Story Bible 合并、结构化剧本生成、事实一致性检查和 YAML 导出，形成可演示、可解释的小说转剧本工作流。
+## 关键设计
+
+### Chapter Analysis
+
+每章单独分析人物、地点、事件、冲突和候选场景，用于保留长文本细节。该阶段对应 Map-Reduce 中的 Map。
+
+### Factual Anchors
+
+记录原文中必须保留的硬事实，例如关键数字、人物关系、地点、事件结果和关键短句，用于约束后续剧本生成。
+
+### Story Bible
+
+将多章分析结果合并为全局故事资料，统一人物、时间线、主线冲突和分场计划。该阶段对应 Map-Reduce 中的 Reduce。
+
+### 双重质量门控
+
+- `Fidelity Check`：检查无依据事实、人物关系错误、关键数字错误和章节归属混乱；必要时执行一次定向 Repair。
+- `Schema Validate`：检查最终剧本字段和结构是否完整，确保结果可被程序读取。
 
 ## 技术栈
 
-- 前端：Next.js + TypeScript
-- 后端：Go + Gin
-- 中间态：JSON / Go struct
-- 最终输出：YAML
-- AI：mock client + OpenAI-compatible real client
+- Frontend: Next.js + TypeScript
+- Backend: Go + Gin
+- LLM: OpenAI-compatible Chat Completions API
+- Output: YAML
+- Validation: Go struct + custom validator
+- Intermediate State: JSON / Go struct
 
-## AI Provider 配置
+## 项目结构
 
-后端默认使用 mock 模式；当 `AI_PROVIDER` 为空或为 `mock` 时，`/api/generate` 会使用内置 `MockClient`。
+```text
+backend/                  Go API 与固定 AI Workflow
+frontend/                 Next.js AI workbench
+docs/architecture.md      架构与设计取舍
+docs/schema.md            YAML Schema 设计说明
+docs/demo_script.md       3～5 分钟录制脚本
+examples/                 输入、中间态与最终 YAML 示例
+```
 
-如需使用真实 OpenAI-compatible Chat Completions API，请在本地 `.env` 中配置：
+## 本地运行
+
+### 1. Mock 模式
+
+Mock 模式不需要 API Key，适合本地开发和 Demo。
 
 ```bash
+cd backend
+go run ./cmd/server
+```
+
+另开终端启动前端：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+默认地址：
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8080`
+
+### 2. Real 模式
+
+根据 `.env.example` 创建本地 `.env`，不要提交 `.env` 或真实 API Key：
+
+```env
 AI_PROVIDER=real
 AI_API_KEY=your_api_key_here
 AI_BASE_URL=https://your-provider-compatible-api/v1
@@ -76,74 +116,60 @@ AI_TIMEOUT_SECONDS=180
 
 环境变量说明：
 
-- `AI_PROVIDER`：AI 客户端模式，支持 `mock` 或 `real`，未配置时默认为 `mock`。
-- `AI_API_KEY`：真实模型 API 密钥，仅在 `real` 模式需要。
-- `AI_BASE_URL`：OpenAI-compatible API 基础地址，可包含 `/v1`。
-- `AI_MODEL`：真实模式使用的模型名称。
-- `AI_TIMEOUT_SECONDS`：单次真实 LLM 请求超时时间，默认 180 秒。
+- `AI_PROVIDER`：`mock` 或 `real`，未配置时默认使用 mock。
+- `AI_API_KEY`：Real 模式需要的 API Key。
+- `AI_BASE_URL`：OpenAI-compatible API 地址，可包含 `/v1`。
+- `AI_MODEL`：使用的模型名称。
+- `AI_TIMEOUT_SECONDS`：单次 LLM HTTP 请求超时时间，默认 `180` 秒。长文本分析时可适当增大，必须为正整数。
 
-不要提交 `.env`，只提交 `.env.example`。`AI_TIMEOUT_SECONDS` 用于控制每次真实 LLM HTTP 请求的超时时间，未配置时默认 180 秒。长文本在合并 Story Bible、生成剧本或事实检查阶段可能耗时更久，可以适当调大；配置必须是正整数秒数。
-
-## 本地运行
-
-Mock 模式无需配置密钥，启动后端：
+配置完成后启动后端和前端：
 
 ```bash
 cd backend
 go run ./cmd/server
 ```
 
-Real 模式先参考 `.env.example` 创建本地 `.env`，设置 `AI_PROVIDER=real` 及 API 配置，再使用同一命令启动。真实模式会执行逐章分析、Story Bible 合并、剧本生成和 Fidelity Check；任何模式都不会绕过 Schema Validate。
-
-启动前端：
-
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
-默认后端地址是 `http://localhost:8080`，默认前端地址是 `http://localhost:3000`。如后端地址不同，可设置：
+如后端地址不同，可设置前端环境变量：
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 npm run dev
 ```
 
-## 接口测试
+## 测试
 
 ```bash
-curl http://localhost:8080/api/health
+cd frontend
+npm run build
 ```
 
-`POST /api/generate` 成功后返回章节数、章节分析、Story Bible、剧本 JSON、剧本 YAML、Schema 校验结果、Fidelity Check 结果和 meta 信息。
-
-少于 3 章时返回：
-
-```json
-{
-  "error": "at least 3 chapters are required"
-}
+```bash
+cd backend
+go test ./...
 ```
 
-## Demo 说明
+## 示例文件
 
-当前前端采用黑白灰极简双栏工具界面：左侧用于输入多章节小说和发起生成，右侧集中展示生成概览、质量检查与可滚动的 YAML 预览；生成成功后继续分区展示详细结果。
-
-前端可以展示：
-
-- Chapter Analysis 章节分析
-- Factual Anchors 事实锚点
-- Story Bible
-- Fidelity Check 事实一致性检查
-- YAML Screenplay 剧本预览、复制与下载
-- Schema Validation 结构校验
-
-示例输入位于 `examples/input_novel.txt`，中间态示例位于 `examples/chapter_analysis.json` 和 `examples/story_bible.json`，最终输出示例位于 `examples/output_screenplay.yaml`。
+- `examples/input_novel.txt`：三章小说输入
+- `examples/chapter_analysis.json`：逐章分析结果
+- `examples/story_bible.json`：全局 Story Bible
+- `examples/output_screenplay.yaml`：最终 YAML 剧本
 
 ## 当前限制
 
-- 真实生成质量仍取决于 LLM
-- Fidelity Check 可降低事实偏差风险，但不能保证 100% 无幻觉
-- 推荐输入 3 到 5 章
-- 当前不支持 PDF/Word 解析
-- 当前不支持历史记录和多人协作
+- 生成质量仍受 LLM 能力影响
+- Fidelity Check 不能保证 100% 无幻觉
+- 推荐输入 3～5 章
+- 当前不支持 PDF / Word
+- 当前不支持登录、历史记录和多人协作
+- 当前不包含数据库、文件上传、流式输出或桌面端
+
+## 安全说明
+
+- `.env`、`*.env` 和本地环境文件已加入 `.gitignore`
+- 仓库只提交 `.env.example` 占位配置
+- 不要在 README、docs、examples 或源码中写入真实 API Key
