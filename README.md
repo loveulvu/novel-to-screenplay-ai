@@ -1,5 +1,9 @@
 # Novel to Screenplay AI
 
+<!-- recruiter-summary -->
+> **工程定位：Go + Gin 多阶段 AI Workflow。** 将长文本处理拆成章节分析、事实锚点、Story Bible、Fidelity Check 与 Schema Validation，重点解决上下文长度、事实漂移和结构化输出稳定性问题。
+<!-- /recruiter-summary -->
+
 一个基于多阶段 AI Workflow 的小说转结构化 YAML 剧本工具。
 
 ## Demo Video
